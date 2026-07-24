@@ -1,0 +1,23 @@
+# Environments
+.env
+.env.*
+!.env.example
+
+# Supabase Local
+anydesk-be/supabase/.temp/
+anydesk-be/.supabase/
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node / JS
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Mac
+.DS_Store
