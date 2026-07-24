@@ -66,7 +66,27 @@ serve(async (req) => {
       }
     });
 
-    const data = await response.json();
+    const responseText = await response.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      return new Response(
+        JSON.stringify({ error: `Gagal memparsing JSON dari API. Respons mentah: ${responseText.substring(0, 100)}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
+
+    // DEBUG: log structure to see thumbnail field names
+    console.log('=== API RESPONSE KEYS:', JSON.stringify(Object.keys(data)));
+    if (data.metadata) {
+      console.log('=== METADATA:', JSON.stringify(data.metadata));
+    }
+    if (data.contents) {
+      const firstNode = Array.isArray(data.contents) ? data.contents[0] : data.contents;
+      console.log('=== FIRST CONTENT NODE KEYS:', JSON.stringify(Object.keys(firstNode || {})));
+      console.log('=== FIRST CONTENT NODE:', JSON.stringify(firstNode).substring(0, 500));
+    }
 
     // Mengembalikan response RapidAPI ke client
     return new Response(
