@@ -5,14 +5,17 @@ import 'dart:io';
 
 class DownloadHelper {
   static Future<void> downloadFile(String url, String filename) async {
-    // Request permission for storage
-    var status = await Permission.storage.request();
-    if (!status.isGranted) {
-      if (Platform.isAndroid && await Permission.manageExternalStorage.request().isGranted) {
-        // Android 11+
-      } else {
-        throw Exception("Izin penyimpanan ditolak");
-      }
+    // On Android 13+, storage permission is denied by default, but we don't need it to save in Downloads.
+    // However, we DO need notification permission to show the progress!
+    if (Platform.isAndroid) {
+      await Permission.notification.request();
+    }
+    
+    var storageStatus = await Permission.storage.request();
+    if (!storageStatus.isGranted) {
+      // Don't throw an error immediately, because on Android 13+ this is normally denied,
+      // but we can still write to the public Downloads folder.
+      print("Warning: Storage permission not granted. Attempting download anyway (might be Android 13+).");
     }
 
     String dirPath = '';

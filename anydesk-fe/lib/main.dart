@@ -30,9 +30,22 @@ class AnySaveApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'AnySave',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.dark,
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFF141416), // Dark background from screenshot
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF141416),
+          elevation: 0,
+        ),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFFE83569), // Pinkish red
+          secondary: Color(0xFF9147FF), // Purple for trial card
+          surface: Color(0xFF1F1F23), // Dark grey for cards
+          onSurface: Colors.white,
+        ),
       ),
       home: const HomeScreen(),
     );
