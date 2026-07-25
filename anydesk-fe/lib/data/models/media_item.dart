@@ -38,17 +38,18 @@ class MediaItem {
   });
 
   factory MediaItem.fromJson(Map<String, dynamic> json) {
-    final title = json['metadata']?['title'] ?? 'Unknown Title';
+    final title = json['title'] ?? json['metadata']?['title'] ?? 'Unknown Title';
     final dynamic contentsData = json['contents'];
 
     List<MediaOption> parsedLinks = [];
     const String proxyBase = 'https://kmzwrypgdlxzzsubmepc.supabase.co/functions/v1/image-proxy?url=';
     
-    String rawThumbnail = json['metadata']?['thumbnailUrl'] ?? 
+    String rawThumbnail = json['thumbnail'] ??
+                          json['metadata']?['thumbnailUrl'] ?? 
                           json['metadata']?['thumbnail'] ?? 
                           json['metadata']?['cover'] ?? '';
     String thumbnail = rawThumbnail.isNotEmpty 
-        ? '$proxyBase${Uri.encodeComponent(rawThumbnail)}' 
+        ? (rawThumbnail.startsWith('http') ? '$proxyBase${Uri.encodeComponent(rawThumbnail)}' : rawThumbnail)
         : '';
 
     void parseContentNode(Map<String, dynamic> node) {
@@ -73,13 +74,28 @@ class MediaItem {
     }
 
     if (contentsData is List) {
-      for (var node in contentsData) {
-        if (node is Map<String, dynamic>) {
-          parseContentNode(node);
+      for (var item in contentsData) {
+        if (item is Map<String, dynamic>) {
+          parseContentNode(item);
         }
       }
     } else if (contentsData is Map<String, dynamic>) {
       parseContentNode(contentsData);
+    }
+    
+    // Support new ExtractedMedia structure
+    final dynamic mediasData = json['medias'];
+    if (mediasData is List) {
+      for (var m in mediasData) {
+        // Map new format to our MediaOption model format
+        String type = (m['extension'] == 'mp3' ? 'audio' : 'video');
+        parsedLinks.add(MediaOption(
+          url: m['url'] ?? '',
+          quality: m['quality'] ?? '',
+          extension: m['extension'] ?? '',
+          renderTitle: 'Download $type ${m['quality'] ?? ''}'.trim(),
+        ));
+      }
     }
 
     // Use first video frame or image as thumbnail if not set
