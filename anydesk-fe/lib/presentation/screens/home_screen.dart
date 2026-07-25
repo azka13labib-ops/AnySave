@@ -270,11 +270,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildSocialIcon(Icons.music_note, 'TikTok', Colors.black, Colors.cyanAccent),
-                    _buildSocialIcon(Icons.camera_alt, 'Instagram', Colors.purple, Colors.orange),
-                    _buildSocialIcon(Icons.facebook, 'Facebook', Colors.blue, Colors.blueAccent),
-                    _buildSocialIcon(Icons.close, 'X', Colors.black, Colors.white),
-                    _buildSocialIcon(Icons.pin_drop, 'Pinterest', Colors.red, Colors.redAccent),
+                    _buildSocialLogoIcon('https://upload.wikimedia.org/wikipedia/en/thumb/a/a9/TikTok_logo.svg/100px-TikTok_logo.svg.png', 'TikTok', const Color(0xFF010101)),
+                    _buildSocialLogoIcon('https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Instagram_icon.png/120px-Instagram_icon.png', 'Instagram', null, isGradient: true),
+                    _buildSocialLogoIcon('https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/120px-Facebook_Logo_%282019%29.png', 'Facebook', const Color(0xFF1877F2)),
+                    _buildSocialLogoIcon('https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/X_logo_2023_original.svg/120px-X_logo_2023_original.svg.png', 'X', const Color(0xFF000000)),
+                    _buildSocialLogoIcon('https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Pinterest-logo.png/120px-Pinterest-logo.png', 'Pinterest', const Color(0xFFE60023)),
                   ],
                 ),
                 
@@ -546,7 +546,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildSocialIcon(IconData icon, String label, Color bgColor, Color iconColor) {
+  Widget _buildSocialLogoIcon(String logoUrl, String label, Color? bgColor, {bool isGradient = false}) {
     return Column(
       children: [
         Container(
@@ -554,19 +554,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           width: 54,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: [bgColor, bgColor.withOpacity(0.8)],
-            ),
+            color: isGradient ? null : (bgColor ?? Colors.black),
+            gradient: isGradient
+                ? const LinearGradient(
+                    colors: [Color(0xFFF58529), Color(0xFFDD2A7B), Color(0xFF8134AF), Color(0xFF515BD4)],
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                  )
+                : null,
             boxShadow: [
               BoxShadow(
-                color: bgColor.withOpacity(0.3),
+                color: (bgColor ?? Colors.black).withOpacity(0.3),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               )
-            ]
+            ],
           ),
           child: Center(
-            child: Icon(icon, color: iconColor, size: 30),
+            child: ClipOval(
+              child: Image.network(
+                logoUrl,
+                height: 30,
+                width: 30,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) =>
+                    Icon(Icons.public, color: Colors.white.withOpacity(0.7), size: 28),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: 8),
