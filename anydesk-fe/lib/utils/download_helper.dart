@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -15,7 +16,7 @@ class DownloadHelper {
     if (!storageStatus.isGranted) {
       // Don't throw an error immediately, because on Android 13+ this is normally denied,
       // but we can still write to the public Downloads folder.
-      print("Warning: Storage permission not granted. Attempting download anyway (might be Android 13+).");
+      debugPrint("Warning: Storage permission not granted. Attempting download anyway (might be Android 13+).");
     }
 
     String dirPath = '';
@@ -32,7 +33,7 @@ class DownloadHelper {
     if (dirPath.isEmpty) throw Exception("Gagal mendapatkan direktori download");
 
     // Clean up filename
-    String safeFilename = filename.replaceAll(RegExp(r'[^\w\s\.-]'), '_') + '.mp4';
+    String safeFilename = '${filename.replaceAll(RegExp(r'[^\w\s\.-]'), '_')}.mp4';
 
     await FlutterDownloader.enqueue(
       url: url,

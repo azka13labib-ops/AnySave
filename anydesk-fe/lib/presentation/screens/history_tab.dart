@@ -94,14 +94,14 @@ class _HistoryTabState extends State<HistoryTab> {
                         decoration: BoxDecoration(
                           color: const Color(0xFF1C1C1E),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white.withOpacity(0.05)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                         ),
                         child: Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: _getStatusColor(task.status).withOpacity(0.1),
+                                color: _getStatusColor(task.status).withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -145,7 +145,7 @@ class _HistoryTabState extends State<HistoryTab> {
                                         Expanded(
                                           child: LinearProgressIndicator(
                                             value: task.progress > 0 ? task.progress / 100 : null,
-                                            backgroundColor: Colors.white.withOpacity(0.1),
+                                            backgroundColor: Colors.white.withValues(alpha: 0.1),
                                             valueColor: AlwaysStoppedAnimation<Color>(
                                               _getStatusColor(task.status),
                                             ),

@@ -51,7 +51,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.cloud_download, color: Theme.of(context).colorScheme.primary, size: 32),
@@ -104,8 +104,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             _currentIndex = index;
           });
         },
-        items: [
-          const BottomNavigationBarItem(
+        items: const [
+          BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
             label: 'Beranda',
@@ -114,7 +114,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.history), // Ubah ikon ke history biar lebih pas
+                Icon(Icons.history), // Ubah ikon ke history biar lebih pas
               ],
             ),
             label: 'Riwayat',
@@ -179,7 +179,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFF1C1C1E),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white.withOpacity(0.1)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                         ),
                         child: Row(
                           children: [
@@ -252,7 +252,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 // Divider text
                 Row(
                   children: [
-                    Expanded(child: Divider(color: Colors.grey.withOpacity(0.3))),
+                    Expanded(child: Divider(color: Colors.grey.withValues(alpha: 0.3))),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16),
                       child: Text(
@@ -260,7 +260,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         style: TextStyle(color: Colors.grey, fontSize: 13),
                       ),
                     ),
-                    Expanded(child: Divider(color: Colors.grey.withOpacity(0.3))),
+                    Expanded(child: Divider(color: Colors.grey.withValues(alpha: 0.3))),
                   ],
                 ),
                 
@@ -323,9 +323,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
                                     colors: [
-                                      Colors.black.withOpacity(0.3),
+                                      Colors.black.withValues(alpha: 0.3),
                                       Colors.transparent,
-                                      Colors.black.withOpacity(0.8),
+                                      Colors.black.withValues(alpha: 0.8),
                                     ],
                                   ),
                                 ),
@@ -333,7 +333,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               Positioned(
                                 top: 12,
                                 left: 12,
-                                child: Icon(Icons.picture_in_picture_alt, color: Colors.white.withOpacity(0.8), size: 20),
+                                child: Icon(Icons.picture_in_picture_alt, color: Colors.white.withValues(alpha: 0.8), size: 20),
                               ),
                               Positioned(
                                 top: 12,
@@ -341,7 +341,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.5),
+                                    color: Colors.black.withValues(alpha: 0.5),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(Icons.volume_off, color: Colors.white, size: 16),
@@ -362,11 +362,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 8),
-                                    Row(
+                                    const Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        const Text('0:03', style: TextStyle(color: Colors.white, fontSize: 11)),
-                                        const Text('2:00', style: TextStyle(color: Colors.white, fontSize: 11)),
+                                        Text('0:03', style: TextStyle(color: Colors.white, fontSize: 11)),
+                                        Text('2:00', style: TextStyle(color: Colors.white, fontSize: 11)),
                                       ],
                                     ),
                                     const SizedBox(height: 6),
@@ -377,7 +377,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         Container(
                                           height: 3,
                                           width: double.infinity,
-                                          color: Colors.white.withOpacity(0.3),
+                                          color: Colors.white.withValues(alpha: 0.3),
                                         ),
                                         Container(
                                           height: 3,
@@ -443,7 +443,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     margin: const EdgeInsets.only(bottom: 24),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text('Error: $err', style: const TextStyle(color: Colors.redAccent)),
@@ -564,7 +564,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 : null,
             boxShadow: [
               BoxShadow(
-                color: (bgColor ?? Colors.black).withOpacity(0.3),
+                color: (bgColor ?? Colors.black).withValues(alpha: 0.3),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               )
@@ -578,7 +578,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 width: 30,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) =>
-                    Icon(Icons.public, color: Colors.white.withOpacity(0.7), size: 28),
+                    Icon(Icons.public, color: Colors.white.withValues(alpha: 0.7), size: 28),
               ),
             ),
           ),

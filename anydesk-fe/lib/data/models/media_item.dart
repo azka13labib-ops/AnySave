@@ -14,8 +14,9 @@ class MediaOption {
   factory MediaOption.fromJson(Map<String, dynamic> json, String type) {
     String mime = (json['metadata']?['mime_type'] as String?) ?? '';
     String ext = mime.split('/').last;
-    if (ext.isEmpty)
+    if (ext.isEmpty) {
       ext = type == 'video' ? 'mp4' : (type == 'image' ? 'jpg' : 'mp3');
+    }
 
     return MediaOption(
       url: json['url'] ?? '',
