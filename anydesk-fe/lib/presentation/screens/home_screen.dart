@@ -191,6 +191,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   title: 'How it Works',
                   onTap: () {
                     Navigator.pop(context);
+                    _showHowItWorksModal();
                   },
                 ),
                 const SizedBox(height: 10),
@@ -254,7 +255,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       if (_isMoreAppsExpanded) ...[
                         Divider(height: 1, color: Colors.white.withValues(alpha: 0.1)),
                         InkWell(
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showDeveloperAppModal('AZKA TOP UP', 'Gaming voucher & top-up app');
+                          },
                           child: const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                             child: Row(
@@ -277,7 +281,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         Divider(height: 1, color: Colors.white.withValues(alpha: 0.1)),
                         InkWell(
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.pop(context);
+                            _showDeveloperAppModal('azka_floatee', 'Floating video player utility');
+                          },
                           child: const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                             child: Row(
@@ -317,6 +324,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   iconColor: const Color(0xFFFF8A8A),
                   onTap: () {
                     Navigator.pop(context);
+                    _showReportIssueModal();
                   },
                 ),
                 const SizedBox(height: 10),
@@ -325,6 +333,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   title: 'Privacy Policy',
                   onTap: () {
                     Navigator.pop(context);
+                    setState(() => _currentIndex = 2); // Go to settings (privacy policy)
                   },
                 ),
                 const SizedBox(height: 10),
@@ -335,6 +344,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+
 
   Widget _buildDrawerCardItem({
     required IconData icon,
@@ -380,6 +390,187 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+
+  void _showHowItWorksModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141416),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.help_outline_rounded, color: _accent, size: 24),
+                  SizedBox(width: 12),
+                  Text('How it Works', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _buildStepItem('1', 'Copy Link', 'Open TikTok, Instagram, or YouTube and copy the video URL.'),
+              const SizedBox(height: 12),
+              _buildStepItem('2', 'Paste URL', 'Open AnySave and paste the link into the input box or tap a platform filter.'),
+              const SizedBox(height: 12),
+              _buildStepItem('3', 'Download Video', 'Tap GET VIDEO and select your preferred quality to save directly to storage.'),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accent,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Got it!', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStepItem(String step, String title, String desc) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: const BoxDecoration(color: _accent, shape: BoxShape.circle),
+          child: Center(child: Text(step, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w900))),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text(desc, style: TextStyle(color: Colors.grey.shade400, fontSize: 13, height: 1.3)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showReportIssueModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141416),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.bug_report_outlined, color: Color(0xFFFF8A8A), size: 24),
+                  SizedBox(width: 12),
+                  Text('Report an Issue', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text('Encountered a bug or download error? Reach out to our developer team directly:', style: TextStyle(color: Colors.grey.shade400, fontSize: 13.5)),
+              const SizedBox(height: 20),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.code, color: _accent, size: 20),
+                ),
+                title: const Text('GitHub Issue Tracker', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                subtitle: const Text('Submit bug reports & feature requests', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final Uri url = Uri.parse('https://github.com/azka13labib-ops/AnySave/issues');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
+              ),
+              const Divider(color: Colors.white12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.email_outlined, color: _accent, size: 20),
+                ),
+                title: const Text('Email Developer', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                subtitle: const Text('azka13labib@gmail.com', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final Uri emailUri = Uri(
+                    scheme: 'mailto',
+                    path: 'azka13labib@gmail.com',
+                    queryParameters: {'subject': 'AnySave Bug Report'},
+                  );
+                  if (await canLaunchUrl(emailUri)) {
+                    await launchUrl(emailUri);
+                  }
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDeveloperAppModal(String appName, String appDesc) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141416),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: _accent.withValues(alpha: 0.15), shape: BoxShape.circle),
+                child: const Icon(Icons.apps_rounded, color: _accent, size: 36),
+              ),
+              const SizedBox(height: 16),
+              Text(appName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 6),
+              Text(appDesc, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _accent,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Close', style: TextStyle(fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
 
   // ──────────────────────────────────────────────
   //  LIBRARY TAB (main home tab)
