@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
@@ -15,6 +16,14 @@ void main() async {
     debug: true, 
     ignoreSsl: true,
   );
+
+  // Set system UI overlay style for immersive dark theme
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    systemNavigationBarColor: Color(0xFF0D0D0D),
+    systemNavigationBarIconBrightness: Brightness.light,
+  ));
 
   runApp(
     const ProviderScope(
@@ -35,16 +44,26 @@ class AnySaveApp extends StatelessWidget {
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF141416), // Dark background from screenshot
+        fontFamily: 'Inter',
+        scaffoldBackgroundColor: const Color(0xFF0D0D0D),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF141416),
+          backgroundColor: Color(0xFF0D0D0D),
           elevation: 0,
+          surfaceTintColor: Colors.transparent,
         ),
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFE83569), // Pinkish red
-          secondary: Color(0xFF9147FF), // Purple for trial card
-          surface: Color(0xFF1F1F23), // Dark grey for cards
+          primary: Color(0xFFC8FF00), // Neon lime green
+          onPrimary: Color(0xFF0D0D0D), // Dark text on green buttons
+          secondary: Color(0xFF1C1C1E),
+          surface: Color(0xFF1C1C1E),
           onSurface: Colors.white,
+        ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Color(0xFF0D0D0D),
+          selectedItemColor: Color(0xFFC8FF00),
+          unselectedItemColor: Color(0xFF666666),
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
         ),
       ),
       home: const HomeScreen(),
