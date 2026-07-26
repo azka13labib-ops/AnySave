@@ -9,6 +9,13 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui';
 import 'dart:isolate';
+import 'dart:async';
+
+@pragma('vm:entry-point')
+void downloadCallback(String id, int status, int progress) {
+  final SendPort? send = IsolateNameServer.lookupPortByName('downloader_send_port');
+  send?.send([id, status, progress]);
+}
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +30,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   // Active Download Progress State
   final ReceivePort _port = ReceivePort();
+  Timer? _progressTimer;
   int _activeProgress = 0;
   DownloadTaskStatus? _activeStatus;
   String? _activeTaskId;
@@ -34,15 +42,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   static const Color _bgDark = Color(0xFF0D0D0D);
   static const Color _cardDark = Color(0xFF1C1C1E);
 
-  @pragma('vm:entry-point')
-  static void _downloadCallback(String id, int status, int progress) {
-    final SendPort? send = IsolateNameServer.lookupPortByName('downloader_send_port');
-    send?.send([id, status, progress]);
-  }
-
   @override
   void initState() {
     super.initState();
+    IsolateNameServer.removePortNameMapping('downloader_send_port');
     IsolateNameServer.registerPortWithName(_port.sendPort, 'downloader_send_port');
     _port.listen((dynamic data) {
       String id = data[0];
@@ -59,7 +62,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     });
 
-    FlutterDownloader.registerCallback(_downloadCallback);
+    FlutterDownloader.registerCallback(downloadCallback);
+  }
+
+  void _startProgressPolling() {
+    _progressTimer?.cancel();
+    _progressTimer = Timer.periodic(const Duration(milliseconds: 500), (_) async {
+      if (_activeTaskId == null) return;
+      try {
+        final tasks = await FlutterDownloader.loadTasksWithRawQuery(
+          query: "SELECT * FROM task WHERE task_id='$_activeTaskId'",
+        );
+        if (tasks != null && tasks.isNotEmpty && mounted) {
+          final t = tasks.first;
+          setState(() {
+            _activeProgress = t.progress;
+            _activeStatus = t.status;
+          });
+          if (t.status == DownloadTaskStatus.complete ||
+              t.status == DownloadTaskStatus.failed ||
+              t.status == DownloadTaskStatus.canceled) {
+            _progressTimer?.cancel();
+          }
+        }
+      } catch (e) {
+        debugPrint('Polling task progress error: $e');
+      }
+    });
   }
 
   void _fetchMedia() {
@@ -82,10 +111,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
+    _progressTimer?.cancel();
     IsolateNameServer.removePortNameMapping('downloader_send_port');
     _urlController.dispose();
     super.dispose();
   }
+
 
   bool _isMoreAppsExpanded = true;
 
@@ -1088,6 +1119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               _activeProgress = 0;
                               _activeStatus = DownloadTaskStatus.running;
                             });
+                            _startProgressPolling();
                           }
                         },
                         style: ElevatedButton.styleFrom(
