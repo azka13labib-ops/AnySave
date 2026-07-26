@@ -86,46 +86,49 @@ class _SettingsTabState extends State<SettingsTab> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  RadioListTile<String>(
-                    activeColor: _accent,
+                  ListTile(
                     contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      _downloadLocation == '/storage/emulated/0/Download' ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                      color: _downloadLocation == '/storage/emulated/0/Download' ? _accent : Colors.grey,
+                    ),
                     title: const Text('Public Downloads Directory', style: TextStyle(color: Colors.white, fontSize: 15)),
                     subtitle: const Text('/storage/emulated/0/Download', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    value: '/storage/emulated/0/Download',
-                    groupValue: _downloadLocation,
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() => _downloadLocation = val);
-                        _saveSetting('download_location', val);
-                        Navigator.pop(context);
-                        _showSnackBar('Download location set to Public Downloads');
-                      }
+                    onTap: () {
+                      const val = '/storage/emulated/0/Download';
+                      setState(() => _downloadLocation = val);
+                      _saveSetting('download_location', val);
+                      Navigator.pop(context);
+                      _showSnackBar('Download location set to Public Downloads');
                     },
                   ),
-                  RadioListTile<String>(
-                    activeColor: _accent,
+                  ListTile(
                     contentPadding: EdgeInsets.zero,
+                    leading: Icon(
+                      _downloadLocation == 'App Private Storage' ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                      color: _downloadLocation == 'App Private Storage' ? _accent : Colors.grey,
+                    ),
                     title: const Text('App Private Storage', style: TextStyle(color: Colors.white, fontSize: 15)),
                     subtitle: const Text('Internal App Documents Folder', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    value: 'App Private Storage',
-                    groupValue: _downloadLocation,
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() => _downloadLocation = val);
-                        _saveSetting('download_location', val);
-                        Navigator.pop(context);
-                        _showSnackBar('Download location set to App Private Storage');
-                      }
+                    onTap: () {
+                      const val = 'App Private Storage';
+                      setState(() => _downloadLocation = val);
+                      _saveSetting('download_location', val);
+                      Navigator.pop(context);
+                      _showSnackBar('Download location set to App Private Storage');
                     },
                   ),
+
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () async {
                         await Permission.storage.request();
-                        if (mounted) Navigator.pop(context);
-                        _showSnackBar('Storage permissions updated');
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          _showSnackBar('Storage permissions updated');
+                        }
                       },
                       icon: const Icon(Icons.security, size: 18, color: _accent),
                       label: const Text('Manage Permissions', style: TextStyle(color: _accent)),
@@ -136,6 +139,7 @@ class _SettingsTabState extends State<SettingsTab> {
                       ),
                     ),
                   ),
+
                 ],
               ),
             );
@@ -182,23 +186,31 @@ class _SettingsTabState extends State<SettingsTab> {
               const SizedBox(height: 16),
               ...qualities.map((item) {
                 final isSelected = _defaultQuality == item['title'];
-                return RadioListTile<String>(
-                  activeColor: _accent,
+                return ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(item['title']!, style: TextStyle(color: isSelected ? _accent : Colors.white, fontSize: 15, fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
+                  leading: Icon(
+                    isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                    color: isSelected ? _accent : Colors.grey,
+                  ),
+                  title: Text(
+                    item['title']!,
+                    style: TextStyle(
+                      color: isSelected ? _accent : Colors.white,
+                      fontSize: 15,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    ),
+                  ),
                   subtitle: Text(item['sub']!, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  value: item['title']!,
-                  groupValue: _defaultQuality,
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() => _defaultQuality = val);
-                      _saveSetting('default_quality', val);
-                      Navigator.pop(context);
-                      _showSnackBar('Default quality set to "$val"');
-                    }
+                  onTap: () {
+                    final val = item['title']!;
+                    setState(() => _defaultQuality = val);
+                    _saveSetting('default_quality', val);
+                    Navigator.pop(context);
+                    _showSnackBar('Default quality set to "$val"');
                   },
                 );
               }),
+
             ],
           ),
         );

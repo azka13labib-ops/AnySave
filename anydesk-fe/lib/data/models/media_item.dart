@@ -11,6 +11,35 @@ class MediaOption {
     required this.renderTitle,
   });
 
+  static String formatQualityLabel(String rawQuality, String type) {
+    if (rawQuality.isEmpty) return type == 'video' ? 'HD Video' : 'Audio MP3';
+
+    final lower = rawQuality.toLowerCase();
+
+    if (lower.contains('1080')) return '1080p Full HD';
+    if (lower.contains('720')) return '720p HD';
+    if (lower.contains('540')) return '540p SD';
+    if (lower.contains('480')) return '480p SD';
+    if (lower.contains('360')) return '360p SD';
+    if (lower.contains('240')) return '240p';
+
+    if (lower.contains('no_watermark') || lower.contains('nowatermark') || lower.contains('nwm')) {
+      return 'No Watermark (HD)';
+    }
+    if (lower.contains('watermark') || lower.contains('wm')) {
+      return 'Watermarked Video';
+    }
+    if (lower == 'hd' || lower == 'highest') {
+      return '1080p Full HD';
+    }
+    if (lower == 'sd' || lower == 'lowest') {
+      return '360p SD';
+    }
+
+    String clean = rawQuality.replaceAll(RegExp(r'[_-]'), ' ').trim();
+    return 'Download $clean';
+  }
+
   factory MediaOption.fromJson(Map<String, dynamic> json, String type) {
     String mime = (json['metadata']?['mime_type'] as String?) ?? '';
     String ext = mime.split('/').last;
@@ -18,11 +47,14 @@ class MediaOption {
       ext = type == 'video' ? 'mp4' : (type == 'image' ? 'jpg' : 'mp3');
     }
 
+    String rawQuality = json['label'] ?? json['quality'] ?? '';
+    String formattedLabel = formatQualityLabel(rawQuality, type);
+
     return MediaOption(
       url: json['url'] ?? '',
-      quality: json['label'] ?? '',
+      quality: rawQuality,
       extension: ext,
-      renderTitle: 'Download $type ${json['label'] ?? ''}'.trim(),
+      renderTitle: 'Download $type $formattedLabel'.replaceAll('  ', ' ').trim(),
     );
   }
 }
@@ -88,28 +120,47 @@ class MediaItem {
     final dynamic mediasData = json['medias'];
     if (mediasData is List) {
       for (var m in mediasData) {
-        // Map new format to our MediaOption model format
         String type = (m['extension'] == 'mp3' ? 'audio' : 'video');
+        String rawQuality = m['quality'] ?? '';
+        String formattedLabel = MediaOption.formatQualityLabel(rawQuality, type);
         parsedLinks.add(MediaOption(
           url: m['url'] ?? '',
-          quality: m['quality'] ?? '',
+          quality: rawQuality,
           extension: m['extension'] ?? '',
-          renderTitle: 'Download $type ${m['quality'] ?? ''}'.trim(),
+          renderTitle: 'Download $type $formattedLabel'.replaceAll('  ', ' ').trim(),
         ));
       }
     }
 
-    // Use first video frame or image as thumbnail if not set
-    if (thumbnail.isEmpty && parsedLinks.isNotEmpty) {
-      // RapidAPI doesn't always give a separate 'picture' field in v3,
-      // sometimes we just don't have a thumbnail for video unless specified.
-      thumbnail = ''; // Will handle empty thumbnail in UI
+    // Sort parsedLinks by highest quality first (1080p > 720p > 540p > 480p > 360p)
+    int getQualityScore(MediaOption option) {
+      final q = '${option.quality} ${option.renderTitle}'.toLowerCase();
+      if (q.contains('1080') || q.contains('full hd') || q.contains('highest')) return 100;
+      if (q.contains('720') || q.contains('hd')) return 80;
+      if (q.contains('540')) return 60;
+      if (q.contains('480')) return 40;
+      if (q.contains('360')) return 30;
+      if (q.contains('240')) return 20;
+      return 10;
     }
+
+    parsedLinks.sort((a, b) => getQualityScore(b).compareTo(getQualityScore(a)));
+
+    // Deduplicate options by title so each quality (1080p, 720p, 540p, etc.) only appears ONCE
+    final Map<String, MediaOption> uniqueMap = {};
+    for (var option in parsedLinks) {
+      if (!uniqueMap.containsKey(option.renderTitle)) {
+        uniqueMap[option.renderTitle] = option;
+      }
+    }
+    final List<MediaOption> uniqueLinks = uniqueMap.values.toList();
 
     return MediaItem(
       title: title,
       thumbnail: thumbnail,
-      links: parsedLinks,
+      links: uniqueLinks,
     );
   }
 }
+
+

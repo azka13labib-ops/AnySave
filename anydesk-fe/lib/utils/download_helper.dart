@@ -2,10 +2,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 
 class DownloadHelper {
-  static Future<void> downloadFile(String url, String filename) async {
+  static Future<String?> downloadFile(String url, String filename, {String? thumbnailUrl}) async {
     // On Android 13+, storage permission is denied by default, but we don't need it to save in Downloads.
     // However, we DO need notification permission to show the progress!
     if (Platform.isAndroid) {
@@ -14,8 +15,6 @@ class DownloadHelper {
     
     var storageStatus = await Permission.storage.request();
     if (!storageStatus.isGranted) {
-      // Don't throw an error immediately, because on Android 13+ this is normally denied,
-      // but we can still write to the public Downloads folder.
       debugPrint("Warning: Storage permission not granted. Attempting download anyway (might be Android 13+).");
     }
 
@@ -35,7 +34,17 @@ class DownloadHelper {
     // Clean up filename
     String safeFilename = '${filename.replaceAll(RegExp(r'[^\w\s\.-]'), '_')}.mp4';
 
-    await FlutterDownloader.enqueue(
+    // Persist thumbnail URL mapping
+    if (thumbnailUrl != null && thumbnailUrl.isNotEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('thumb_$safeFilename', thumbnailUrl);
+      } catch (e) {
+        debugPrint('Error saving thumbnail preference: $e');
+      }
+    }
+
+    final taskId = await FlutterDownloader.enqueue(
       url: url,
       savedDir: dirPath,
       fileName: safeFilename,
@@ -43,5 +52,9 @@ class DownloadHelper {
       openFileFromNotification: true, // click on notification to open
       saveInPublicStorage: true,
     );
+
+    return taskId;
   }
 }
+
+
