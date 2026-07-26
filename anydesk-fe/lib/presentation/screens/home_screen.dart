@@ -80,37 +80,66 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SettingsTab(),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: _bgDark,
-          border: Border(
-            top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-          ),
+      bottomNavigationBar: _buildCustomBottomNav(),
+    );
+  }
+
+  Widget _buildCustomBottomNav() {
+    return Container(
+      height: 72,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A0A0A),
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_rounded),
-              activeIcon: Icon(Icons.grid_view_rounded),
-              label: 'Library',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.download_rounded),
-              activeIcon: Icon(Icons.download_rounded),
-              label: 'Downloads',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              activeIcon: Icon(Icons.settings_rounded),
-              label: 'Settings',
-            ),
-          ],
-        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildNavItem(0, Icons.home_rounded, 'Home'),
+          _buildNavItem(1, Icons.arrow_circle_down_outlined, 'Downloads'),
+          _buildNavItem(2, Icons.settings_outlined, 'Settings'),
+        ],
       ),
     );
   }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 60,
+            height: 32,
+            decoration: BoxDecoration(
+              color: isSelected ? _accent : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              size: 22,
+              color: isSelected ? Colors.black : Colors.grey.shade400,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? _accent : Colors.grey.shade400,
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 
   // ──────────────────────────────────────────────
   //  LIBRARY TAB (main home tab)
@@ -689,7 +718,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   // ──────────────────────────────────────────────
-  //  Why AnySave Section
+  //  Why AnySave Section (1:1 Screenshot Match)
   // ──────────────────────────────────────────────
   Widget _buildWhySection() {
     return Column(
@@ -699,87 +728,151 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           'Why AnySave?',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 14),
-        _buildFeatureCard(
-          icon: Icons.bolt,
-          iconColor: _accent,
-          title: 'LIGHTNING FAST',
-          description: 'Our servers bypass traditional throttles to deliver your media in seconds, not minutes. Built for pure performance.',
+        const SizedBox(height: 16),
+        
+        // Card 1: LIGHTNING FAST (Dark card with Neon Green Icon & Lightning Watermark)
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E20),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.4),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            children: [
+              // Background Watermark Lightning Bolt
+              Positioned(
+                right: -15,
+                bottom: -20,
+                child: Icon(
+                  Icons.bolt,
+                  size: 160,
+                  color: Colors.white.withValues(alpha: 0.06),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Speedometer Badge
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: _accent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.speed_rounded,
+                          color: Colors.black,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'LIGHTNING FAST',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Our servers bypass traditional throttles to deliver your media in seconds, not minutes. Built for pure performance.',
+                      style: TextStyle(
+                        color: Colors.grey.shade400,
+                        fontSize: 13.5,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 10),
-        _buildFeatureCard(
-          icon: Icons.high_quality,
-          iconColor: _accent,
-          title: '4K READY',
-          description: 'Lossless extraction for maximum fidelity.',
-        ),
-        const SizedBox(height: 10),
-        _buildFeatureCard(
-          icon: Icons.security,
-          iconColor: _accent,
-          title: 'PRIVATE & SECURE',
-          description: 'No accounts needed. No tracking. Your downloads stay on your device.',
+        
+        const SizedBox(height: 16),
+        
+        // Card 2: 4K READY (Cyan Card with Centered HQ Badge)
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF75F3FF), // Vibrant cyan blue
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF75F3FF).withValues(alpha: 0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // HQ Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black, width: 2.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'HQ',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                '4K READY',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Lossless extraction for maximum fidelity.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF0F4C5C), // Dark cyan text
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildFeatureCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String description,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _cardDark,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: iconColor, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: TextStyle(
-                    color: Colors.grey.shade400,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
