@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class SettingsTab extends StatefulWidget {
-  const SettingsTab({super.key});
+  final VoidCallback? onHistoryCleared;
+  const SettingsTab({super.key, this.onHistoryCleared});
 
   @override
   State<SettingsTab> createState() => _SettingsTabState();
@@ -24,6 +24,11 @@ class _SettingsTabState extends State<SettingsTab> {
   void initState() {
     super.initState();
     _loadSettings();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        FocusScope.of(context).unfocus();
+      }
+    });
   }
 
   Future<void> _loadSettings() async {
@@ -265,9 +270,22 @@ class _SettingsTabState extends State<SettingsTab> {
               onPressed: () async {
                 Navigator.pop(context);
                 try {
-                  await FlutterDownloader.cancelAll();
-                } catch (_) {}
+                  final tasks = await FlutterDownloader.loadTasks();
+                  if (tasks != null) {
+                    for (var t in tasks) {
+                      await FlutterDownloader.remove(taskId: t.taskId, shouldDeleteContent: false);
+                    }
+                  }
+                  final prefs = await SharedPreferences.getInstance();
+                  final keys = prefs.getKeys().where((k) => k.startsWith('thumb_')).toList();
+                  for (var k in keys) {
+                    await prefs.remove(k);
+                  }
+                } catch (e) {
+                  debugPrint('Error clearing history: $e');
+                }
                 _showSnackBar('Download history successfully cleared!');
+                widget.onHistoryCleared?.call();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.redAccent,
@@ -321,7 +339,7 @@ class _SettingsTabState extends State<SettingsTab> {
               ),
               const SizedBox(height: 16),
               Text(
-                'AnySave is an open-source, lightning-fast media downloader. Paste video links from TikTok, Instagram, YouTube, and more to save them directly to your device storage in high quality.',
+                'AnySave is a powerful, proprietary, lightning-fast media downloader. Paste video links from TikTok, Instagram, YouTube, and more to save them directly to your device storage in high quality.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey.shade400, fontSize: 13.5, height: 1.4),
               ),
@@ -329,14 +347,9 @@ class _SettingsTabState extends State<SettingsTab> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final Uri url = Uri.parse('https://github.com/azka13labib-ops/AnySave');
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(url, mode: LaunchMode.externalApplication);
-                    }
-                  },
-                  icon: const Icon(Icons.code, size: 18, color: Colors.black),
-                  label: const Text('GitHub Repository', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.check_circle_outline, size: 18, color: Colors.black),
+                  label: const Text('Got It', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _accent,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -653,7 +666,10 @@ class _SettingsTabState extends State<SettingsTab> {
       color: _cardDark,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+          onTap();
+        },
         borderRadius: BorderRadius.circular(14),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

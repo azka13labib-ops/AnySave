@@ -3,7 +3,8 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DownloadsTab extends StatefulWidget {
-  const DownloadsTab({super.key});
+  final int refreshKey;
+  const DownloadsTab({super.key, this.refreshKey = 0});
 
   @override
   State<DownloadsTab> createState() => _DownloadsTabState();
@@ -17,6 +18,14 @@ class _DownloadsTabState extends State<DownloadsTab> {
   void initState() {
     super.initState();
     _loadTasks();
+  }
+
+  @override
+  void didUpdateWidget(covariant DownloadsTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshKey != widget.refreshKey) {
+      _loadTasks();
+    }
   }
 
   Future<void> _loadTasks() async {

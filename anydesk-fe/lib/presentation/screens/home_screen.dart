@@ -31,6 +31,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // Active Download Progress State
   final ReceivePort _port = ReceivePort();
   Timer? _progressTimer;
+  StateSetter? _modalSetState;
   int _activeProgress = 0;
   DownloadTaskStatus? _activeStatus;
   String? _activeTaskId;
@@ -41,6 +42,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   static const Color _accent = Color(0xFFC8FF00);
   static const Color _bgDark = Color(0xFF0D0D0D);
   static const Color _cardDark = Color(0xFF1C1C1E);
+
+  void _updateActiveProgress(String id, int progress, DownloadTaskStatus status) {
+    if (mounted) {
+      setState(() {
+        _activeTaskId = id;
+        _activeProgress = progress;
+        _activeStatus = status;
+      });
+      _modalSetState?.call(() {});
+    }
+  }
 
   @override
   void initState() {
@@ -53,13 +65,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       int progress = data[2];
       DownloadTaskStatus status = DownloadTaskStatus.values[statusVal];
 
-      if (mounted) {
-        setState(() {
-          _activeTaskId = id;
-          _activeProgress = progress;
-          _activeStatus = status;
-        });
-      }
+      _updateActiveProgress(id, progress, status);
     });
 
     FlutterDownloader.registerCallback(downloadCallback);
@@ -75,10 +81,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
         if (tasks != null && tasks.isNotEmpty && mounted) {
           final t = tasks.first;
-          setState(() {
-            _activeProgress = t.progress;
-            _activeStatus = t.status;
-          });
+          _updateActiveProgress(t.taskId, t.progress, t.status);
           if (t.status == DownloadTaskStatus.complete ||
               t.status == DownloadTaskStatus.failed ||
               t.status == DownloadTaskStatus.canceled) {
@@ -121,6 +124,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isMoreAppsExpanded = true;
 
 
+  int _downloadsRefreshCounter = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -130,8 +135,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         index: _currentIndex,
         children: [
           _buildLibraryTab(context),
-          const DownloadsTab(),
-          const SettingsTab(),
+          DownloadsTab(refreshKey: _downloadsRefreshCounter),
+          SettingsTab(onHistoryCleared: () {
+            setState(() {
+              _downloadsRefreshCounter++;
+            });
+          }),
         ],
       ),
       bottomNavigationBar: _buildCustomBottomNav(),
@@ -162,7 +171,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _currentIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
+      onTap: () {
+        FocusScope.of(context).unfocus();
+        setState(() {
+          _currentIndex = index;
+          if (index == 1) {
+            _downloadsRefreshCounter++;
+          }
+        });
+      },
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -886,9 +903,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return GestureDetector(
       onTap: () async {
         final Uri uri = Uri.parse(targetUrl);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
+        try {
+          final bool launched = await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+          if (!launched) {
+            await launchUrl(uri, mode: LaunchMode.platformDefault);
+          }
+        } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -1120,6 +1143,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               _activeStatus = DownloadTaskStatus.running;
                             });
                             _startProgressPolling();
+                            _showDownloadProgressDialog(context, taskId, link.renderTitle, '$filename.mp4');
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -1157,31 +1181,240 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  void _showDownloadProgressDialog(BuildContext context, String taskId, String qualityLabel, String fileName) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            _modalSetState = setModalState;
+            final isComplete = _activeStatus == DownloadTaskStatus.complete;
+            final isFailed = _activeStatus == DownloadTaskStatus.failed;
+            final isCanceled = _activeStatus == DownloadTaskStatus.canceled;
+
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C1E),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                border: Border.all(color: _accent.withValues(alpha: 0.2)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle bar
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+
+                  // Header
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: (isComplete ? _accent : (isFailed || isCanceled ? Colors.redAccent : _accent)).withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isComplete
+                              ? Icons.check_circle_rounded
+                              : (isFailed || isCanceled ? Icons.error_outline_rounded : Icons.downloading_rounded),
+                          color: isComplete ? _accent : (isFailed || isCanceled ? Colors.redAccent : _accent),
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isComplete
+                                  ? 'Download Selesai!'
+                                  : (isFailed
+                                      ? 'Download Gagal'
+                                      : (isCanceled ? 'Download Dibatalkan' : 'Mengunduh Media...')),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              qualityLabel,
+                              style: TextStyle(
+                                color: Colors.grey.shade400,
+                                fontSize: 13,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Percentage & Progress Bar
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        isComplete ? '100%' : '$_activeProgress%',
+                        style: TextStyle(
+                          color: isComplete ? _accent : (isFailed || isCanceled ? Colors.redAccent : _accent),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 22,
+                        ),
+                      ),
+                      Text(
+                        isComplete ? 'Selesai' : (isFailed || isCanceled ? 'Berhenti' : 'Proses mengunduh...'),
+                        style: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(
+                      value: isComplete ? 1.0 : (_activeProgress > 0 ? _activeProgress / 100 : null),
+                      backgroundColor: Colors.white10,
+                      color: isFailed || isCanceled ? Colors.redAccent : _accent,
+                      minHeight: 10,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Action Buttons (Cancel / Play Video)
+                  if (!isComplete && !isCanceled && !isFailed) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          await FlutterDownloader.cancel(taskId: taskId);
+                          _progressTimer?.cancel();
+                          setState(() {
+                            _activeStatus = DownloadTaskStatus.canceled;
+                          });
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Download dibatalkan'),
+                                backgroundColor: Color(0xFF1C1C1E),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.cancel_outlined, size: 18, color: Colors.redAccent),
+                        label: const Text(
+                          'Batalkan Download',
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.redAccent),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                  ] else if (isComplete) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          FlutterDownloader.open(taskId: taskId);
+                        },
+                        icon: const Icon(Icons.play_arrow_rounded, size: 22),
+                        label: const Text(
+                          'Putar Video',
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _accent,
+                          foregroundColor: _bgDark,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          },
+        );
+      },
+    ).whenComplete(() {
+      _modalSetState = null;
+    });
+  }
+
   Widget _buildActiveDownloadCard() {
     if (_activeTaskId == null || _activeStatus == null) {
       return const SizedBox.shrink();
     }
     final isComplete = _activeStatus == DownloadTaskStatus.complete;
     final isFailed = _activeStatus == DownloadTaskStatus.failed;
+    final isCanceled = _activeStatus == DownloadTaskStatus.canceled;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _cardDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isComplete ? _accent : (isFailed ? Colors.redAccent : _accent.withValues(alpha: 0.6)),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: (isComplete ? _accent : (isFailed ? Colors.redAccent : _accent)).withValues(alpha: 0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    return GestureDetector(
+      onTap: () => _showDownloadProgressDialog(
+        context,
+        _activeTaskId!,
+        _activeQualityLabel ?? '',
+        _activeFileName ?? '',
       ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _cardDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isComplete ? _accent : (isFailed || isCanceled ? Colors.redAccent : _accent.withValues(alpha: 0.6)),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: (isComplete ? _accent : (isFailed || isCanceled ? Colors.redAccent : _accent)).withValues(alpha: 0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1282,8 +1515,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   // ──────────────────────────────────────────────
   //  Recent Downloads Section
