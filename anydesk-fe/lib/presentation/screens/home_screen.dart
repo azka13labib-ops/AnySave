@@ -68,10 +68,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
+  bool _isMoreAppsExpanded = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bgDark,
+      drawer: _buildDrawer(context),
       body: IndexedStack(
         index: _currentIndex,
         children: [
@@ -83,6 +86,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       bottomNavigationBar: _buildCustomBottomNav(),
     );
   }
+
 
   Widget _buildCustomBottomNav() {
     return Container(
@@ -140,6 +144,242 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      backgroundColor: const Color(0xFF141416),
+      child: Column(
+        children: [
+          // Header (Solid Vibrant Neon Lime Green)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 50, 20, 24),
+            color: _accent,
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ANYSAVE',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'V1.0.0 BETA',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Drawer Items
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Item 1: How it Works
+                _buildDrawerCardItem(
+                  icon: Icons.help_outline_rounded,
+                  title: 'How it Works',
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+                const SizedBox(height: 10),
+
+                // Item 2: Storage Settings (Active with Green Border)
+                _buildDrawerCardItem(
+                  icon: Icons.folder_open_rounded,
+                  title: 'Storage Settings',
+                  isHighlighted: true,
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() => _currentIndex = 2);
+                  },
+                ),
+                const SizedBox(height: 10),
+
+                // Item 3: More Apps by Developer (Expandable)
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E1E20),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _isMoreAppsExpanded = !_isMoreAppsExpanded;
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.apps_rounded, color: Colors.white, size: 20),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  'More Apps by\nDeveloper',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.2,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                _isMoreAppsExpanded
+                                    ? Icons.keyboard_arrow_up
+                                    : Icons.keyboard_arrow_down,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (_isMoreAppsExpanded) ...[
+                        Divider(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+                        InkWell(
+                          onTap: () {},
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                            child: Row(
+                              children: [
+                                SizedBox(width: 8),
+                                Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 18),
+                                SizedBox(width: 12),
+                                Text(
+                                  'AZKA TOP UP',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Divider(height: 1, color: Colors.white.withValues(alpha: 0.1)),
+                        InkWell(
+                          onTap: () {},
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                            child: Row(
+                              children: [
+                                SizedBox(width: 8),
+                                Icon(Icons.widgets_outlined, color: Colors.white, size: 18),
+                                SizedBox(width: 12),
+                                Text(
+                                  'azka_floatee',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Bottom Items (Report an Issue & Privacy Policy)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildDrawerCardItem(
+                  icon: Icons.bug_report_outlined,
+                  title: 'Report an Issue',
+                  textColor: const Color(0xFFFF8A8A),
+                  iconColor: const Color(0xFFFF8A8A),
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+                const SizedBox(height: 10),
+                _buildDrawerCardItem(
+                  icon: Icons.shield_outlined,
+                  title: 'Privacy Policy',
+                  onTap: () {
+                    Navigator.pop(context);
+                  },
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerCardItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    bool isHighlighted = false,
+    Color? textColor,
+    Color? iconColor,
+  }) {
+    return Material(
+      color: const Color(0xFF1E1E20),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: isHighlighted
+                ? Border.all(color: _accent, width: 2)
+                : Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                color: isHighlighted ? _accent : (iconColor ?? Colors.white),
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  color: isHighlighted ? _accent : (textColor ?? Colors.white),
+                  fontSize: 14,
+                  fontWeight: isHighlighted ? FontWeight.w700 : FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   // ──────────────────────────────────────────────
   //  LIBRARY TAB (main home tab)
@@ -156,10 +396,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GestureDetector(
-                  onTap: () {},
-                  child: const Icon(Icons.menu, color: Colors.white, size: 26),
+                Builder(
+                  builder: (scaffoldContext) => GestureDetector(
+                    onTap: () {
+                      Scaffold.of(scaffoldContext).openDrawer();
+                    },
+                    child: const Icon(Icons.menu, color: Colors.white, size: 26),
+                  ),
                 ),
+
                 const Text(
                   'ANYSAVE',
                   style: TextStyle(
