@@ -67,7 +67,7 @@ class _SettingsTabState extends State<SettingsTab> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return StatefulWidget(
+        return StatefulBuilder(
           builder: (context, setModalState) {
             return Padding(
               padding: const EdgeInsets.all(24.0),

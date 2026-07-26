@@ -5,6 +5,8 @@ import '../providers/downloader_provider.dart';
 import '../../utils/download_helper.dart';
 import 'history_tab.dart';
 import 'settings_tab.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
