@@ -4,10 +4,10 @@ import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_constants.dart';
 import '../widgets/storage_banner.dart';
-import '../widgets/platform_toggle.dart';
 import '../widgets/recent_download_card.dart';
 import '../providers/app_settings_provider.dart';
 
@@ -27,7 +27,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TextEditingController _urlController = TextEditingController();
-  String _selectedPlatform = 'tiktok';
   bool _showStorageBanner = false;
   DownloadTask? _latestTask;
   String _latestThumb = '';
@@ -185,31 +184,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Storage Access Needed Banner
-              if (_showStorageBanner)
+              if (_showStorageBanner) ...[
                 StorageBanner(
                   onEnableAccess: _requestStorageAccess,
                 ),
+                const SizedBox(height: AppConstants.sectionGap),
+              ],
 
-              // 2. Select Platform Toggle
-              Text(
-                AppStrings.tr('select_platform', currentLanguage),
-                style: TextStyle(
-                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              PlatformToggle(
-                selectedPlatform: _selectedPlatform,
-                onPlatformChanged: (platform) {
-                  setState(() => _selectedPlatform = platform);
-                },
-              ),
-
-              const SizedBox(height: AppConstants.sectionGap),
-
-              // 3. Search Input Section
+              // 2. Search Input Section
               Container(
                 decoration: BoxDecoration(
                   color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
@@ -264,6 +246,75 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
 
+              const SizedBox(height: AppConstants.sectionGap),
+
+              // 4. Social App Shortcuts Section
+              Row(
+                children: [
+                  Expanded(
+                    child: Divider(
+                      color: isDark ? AppColors.borderDark : const Color(0xFFE9E7ED),
+                      thickness: 1,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      'Open Social App to Copy Link',
+                      style: TextStyle(
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Divider(
+                      color: isDark ? AppColors.borderDark : const Color(0xFFE9E7ED),
+                      thickness: 1,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildSocialShortcut(
+                    name: 'TikTok',
+                    iconPath: 'assets/icons/tiktok.png',
+                    url: 'https://www.tiktok.com/',
+                    isDark: isDark,
+                  ),
+                  _buildSocialShortcut(
+                    name: 'Instagram',
+                    iconPath: 'assets/icons/instagram.png',
+                    url: 'https://www.instagram.com/',
+                    isDark: isDark,
+                  ),
+                  _buildSocialShortcut(
+                    name: 'Facebook',
+                    iconPath: 'assets/icons/facebook.png',
+                    url: 'https://www.facebook.com/',
+                    isDark: isDark,
+                  ),
+                  _buildSocialShortcut(
+                    name: 'X',
+                    iconPath: 'assets/icons/x.png',
+                    url: 'https://x.com/',
+                    isDark: isDark,
+                  ),
+                  _buildSocialShortcut(
+                    name: 'Pinterest',
+                    iconPath: 'assets/icons/pinterest.png',
+                    url: 'https://www.pinterest.com/',
+                    isDark: isDark,
+                  ),
+                ],
+              ),
+
               if (_latestTask != null) ...[
                 const SizedBox(height: AppConstants.sectionGap),
 
@@ -289,6 +340,68 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSocialShortcut({
+    required String name,
+    required String iconPath,
+    required String url,
+    required bool isDark,
+  }) {
+    return InkWell(
+      onTap: () async {
+        final uri = Uri.parse(url);
+        try {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } catch (_) {
+          // Fallback ke browser biasa jika aplikasi external tidak berhasil dibuka
+          await launchUrl(uri);
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+        child: Column(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark ? const Color(0xFF1E1E24) : Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(8),
+              child: ClipOval(
+                child: Image.asset(
+                  iconPath,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Icon(
+                    Icons.public_rounded,
+                    color: isDark ? Colors.white70 : Colors.black87,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              name,
+              style: TextStyle(
+                color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );

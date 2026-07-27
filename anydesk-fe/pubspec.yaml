@@ -36,4 +36,9 @@ flutter:
     - .env
     - assets/icons/app_logo.png
     - assets/icons/splash_logo.png
+    - assets/icons/tiktok.png
+    - assets/icons/instagram.png
+    - assets/icons/facebook.png
+    - assets/icons/x.png
+    - assets/icons/pinterest.png
     - assets/app_logo.png
