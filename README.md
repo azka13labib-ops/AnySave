@@ -89,3 +89,10 @@ AnySave/
 ## Disclaimer
 
 AnySave dikembangkan untuk keperluan edukasi dan penggunaan pribadi. Aplikasi ini tidak berafiliasi, disponsori, atau didukung oleh TikTok, Instagram, atau Meta Platforms, Inc. Pengguna bertanggung jawab penuh atas penggunaan konten sesuai hukum hak cipta yang berlaku.
+
+---
+
+## Lisensi
+
+Proyek ini dilisensikan di bawah [MIT License](LICENSE).
+
