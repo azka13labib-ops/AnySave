@@ -4,7 +4,7 @@ class AppColors {
   // Brand & Accent Colors
   static const Color primary = Color(0xFF0058BC);
   static const Color primaryContainer = Color(0xFF0070EB);
-  static const Color primaryAccent = Color(0xFFC8FF00); // Neon Lime Accent
+  static const Color primaryAccent = Color(0xFFFFFFFF); // Pure White for Monochrome Dark Mode
 
   // Background Colors
   static const Color darkBackground = Color(0xFF0D0D0D);
