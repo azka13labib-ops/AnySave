@@ -1,13 +1,22 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
+import '../data/models/media_item.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_constants.dart';
 
 class DownloadingScreen extends StatefulWidget {
+  final String? taskId;
+  final MediaItem? mediaItem;
+  final MediaOption? selectedOption;
   final VoidCallback onCancel;
   final VoidCallback onComplete;
 
   const DownloadingScreen({
     super.key,
+    this.taskId,
+    this.mediaItem,
+    this.selectedOption,
     required this.onCancel,
     required this.onComplete,
   });
@@ -18,38 +27,80 @@ class DownloadingScreen extends StatefulWidget {
 
 class _DownloadingScreenState extends State<DownloadingScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  double _progress = 0.45;
+  late AnimationController _spinController;
+  Timer? _pollingTimer;
+  int _progress = 0;
+  DownloadTaskStatus _status = DownloadTaskStatus.running;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _spinController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4),
-    )..addListener(() {
-        setState(() {
-          _progress = _controller.value;
-        });
-        if (_controller.isCompleted) {
-          widget.onComplete();
+      duration: const Duration(seconds: 2),
+    )..repeat();
+
+    _startProgressPolling();
+  }
+
+  void _startProgressPolling() {
+    if (widget.taskId == null) return;
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(milliseconds: 500), (_) async {
+      try {
+        final tasks = await FlutterDownloader.loadTasksWithRawQuery(
+          query: "SELECT * FROM task WHERE task_id='${widget.taskId}'",
+        );
+        if (tasks != null && tasks.isNotEmpty && mounted) {
+          final task = tasks.first;
+          setState(() {
+            _progress = task.progress;
+            _status = task.status;
+          });
+
+          if (task.status == DownloadTaskStatus.complete) {
+            _pollingTimer?.cancel();
+            widget.onComplete();
+          } else if (task.status == DownloadTaskStatus.failed ||
+              task.status == DownloadTaskStatus.canceled) {
+            _pollingTimer?.cancel();
+          }
         }
-      });
-    _controller.forward(from: 0.2);
+      } catch (e) {
+        debugPrint('Polling download task error: $e');
+      }
+    });
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _spinController.dispose();
+    _pollingTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _handleCancel() async {
+    if (widget.taskId != null) {
+      try {
+        await FlutterDownloader.cancel(taskId: widget.taskId!);
+      } catch (_) {}
+    }
+    widget.onCancel();
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final percentage = (_progress * 100).toInt();
-    final downloadedMb = (_progress * 28).toStringAsFixed(1);
     final primaryColor = isDark ? AppColors.primaryAccent : AppColors.primary;
+
+    final item = widget.mediaItem;
+    final option = widget.selectedOption;
+
+    final title = item?.title ?? 'Mengunduh video...';
+    final thumbnail = item?.thumbnail.isNotEmpty == true
+        ? item!.thumbnail
+        : 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600';
+    final qualityLabel = option?.renderTitle.replaceAll('Download ', '') ?? '720p HD';
 
     return Scaffold(
       appBar: AppBar(
@@ -82,7 +133,7 @@ class _DownloadingScreenState extends State<DownloadingScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 1. Blurred Video Thumbnail Area with Spinning Sync Icon
+                  // 1. Real Video Thumbnail Area with Animated Sync Icon
                   SizedBox(
                     height: 160,
                     width: double.infinity,
@@ -92,12 +143,13 @@ class _DownloadingScreenState extends State<DownloadingScreen>
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Image.network(
-                            'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600',
+                            thumbnail,
                             width: double.infinity,
                             height: 160,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => Container(
                               color: isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary,
+                              child: const Icon(Icons.movie_outlined, size: 48, color: Colors.grey),
                             ),
                           ),
                         ),
@@ -108,7 +160,7 @@ class _DownloadingScreenState extends State<DownloadingScreen>
                           ),
                         ),
                         RotationTransition(
-                          turns: _controller,
+                          turns: _spinController,
                           child: const Icon(
                             Icons.sync_rounded,
                             color: Colors.white,
@@ -125,29 +177,34 @@ class _DownloadingScreenState extends State<DownloadingScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Mengunduh video...',
-                            style: TextStyle(
-                              color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: TextStyle(
+                                color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Menyimpan ke Galeri',
-                            style: TextStyle(
-                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                              fontSize: 13,
+                            const SizedBox(height: 2),
+                            Text(
+                              'Kualitas: $qualityLabel',
+                              style: TextStyle(
+                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                fontSize: 13,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
-                        '$percentage%',
+                        '$_progress%',
                         style: TextStyle(
                           color: primaryColor,
                           fontSize: 22,
@@ -163,7 +220,7 @@ class _DownloadingScreenState extends State<DownloadingScreen>
                   ClipRRect(
                     borderRadius: BorderRadius.circular(999),
                     child: LinearProgressIndicator(
-                      value: _progress,
+                      value: _progress / 100.0,
                       minHeight: 8,
                       backgroundColor: isDark ? AppColors.darkSurfaceSecondary : const Color(0xFFE3E2E7),
                       color: primaryColor,
@@ -176,7 +233,9 @@ class _DownloadingScreenState extends State<DownloadingScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '$downloadedMb MB / 28.0 MB',
+                        _status == DownloadTaskStatus.complete
+                            ? 'Selesai disimpan ke Galeri'
+                            : 'Mengunduh file...',
                         style: TextStyle(
                           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                           fontSize: 11,
@@ -184,7 +243,7 @@ class _DownloadingScreenState extends State<DownloadingScreen>
                         ),
                       ),
                       Text(
-                        '2.4 MB/s',
+                        '$_progress%',
                         style: TextStyle(
                           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                           fontSize: 11,
@@ -198,7 +257,7 @@ class _DownloadingScreenState extends State<DownloadingScreen>
 
                   // 3. Cancel Button
                   OutlinedButton.icon(
-                    onPressed: widget.onCancel,
+                    onPressed: _handleCancel,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
                       side: const BorderSide(color: AppColors.error),

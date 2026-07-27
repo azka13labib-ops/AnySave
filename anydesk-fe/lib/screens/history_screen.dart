@@ -1,44 +1,172 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_constants.dart';
+import '../providers/app_settings_provider.dart';
 
-class HistoryScreen extends StatefulWidget {
-  final VoidCallback onClearHistoryTap;
+class HistoryItem {
+  final String taskId;
+  final String title;
+  final String platform;
+  final String size;
+  final String thumbnail;
+  final String filePath;
 
-  const HistoryScreen({
-    super.key,
-    required this.onClearHistoryTap,
+  HistoryItem({
+    required this.taskId,
+    required this.title,
+    required this.platform,
+    required this.size,
+    required this.thumbnail,
+    required this.filePath,
   });
-
-  @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
-  final List<Map<String, String>> _mockHistory = [
-    {
-      'title': 'Epic Skate Session V...',
-      'platform': 'TikTok',
-      'size': '14.2 MB',
-      'thumbnail': 'https://images.unsplash.com/photo-1547447134-cd3f5c716030?w=200',
-    },
-    {
-      'title': 'Truffle Pasta Recipe',
-      'platform': 'Instagram',
-      'size': '28.5 MB',
-      'thumbnail': 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=200',
-    },
-    {
-      'title': 'Dog Reaction',
-      'platform': 'TikTok',
-      'size': '5.1 MB',
-      'thumbnail': 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200',
-    },
-  ];
+class HistoryScreen extends ConsumerStatefulWidget {
+  final VoidCallback onClearHistoryTap;
+  final Key? key;
+
+  const HistoryScreen({
+    this.key,
+    required this.onClearHistoryTap,
+  }) : super(key: key);
+
+  @override
+  ConsumerState<HistoryScreen> createState() => HistoryScreenState();
+}
+
+class HistoryScreenState extends ConsumerState<HistoryScreen> {
+  List<HistoryItem> _historyItems = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    loadHistory();
+  }
+
+  Future<void> loadHistory() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
+    try {
+      final tasks = await FlutterDownloader.loadTasks();
+      final prefs = await SharedPreferences.getInstance();
+
+      List<HistoryItem> items = [];
+
+      if (tasks != null && tasks.isNotEmpty) {
+        for (var task in tasks) {
+          if (task.status == DownloadTaskStatus.complete) {
+            final thumb = prefs.getString('thumb_${task.taskId}') ?? '';
+            final fileName = task.filename ?? 'Video_${task.taskId.substring(0, 5)}.mp4';
+            final filePath = '${task.savedDir}/${task.filename}';
+
+            String platform = 'AnySave';
+            if (fileName.toLowerCase().contains('tiktok')) {
+              platform = 'TikTok';
+            } else if (fileName.toLowerCase().contains('instagram') || fileName.toLowerCase().contains('ig')) {
+              platform = 'Instagram';
+            } else if (fileName.toLowerCase().contains('youtube') || fileName.toLowerCase().contains('yt')) {
+              platform = 'YouTube';
+            }
+
+            items.add(
+              HistoryItem(
+                taskId: task.taskId,
+                title: fileName,
+                platform: platform,
+                size: 'Video MP4',
+                thumbnail: thumb,
+                filePath: filePath,
+              ),
+            );
+          }
+        }
+      }
+
+      // Check if user cleared history permanently
+      final isClearedPermanently = prefs.getBool('history_cleared_permanently') ?? false;
+
+      if (items.isEmpty && !isClearedPermanently) {
+        // Fallback default mock items if user hasn't downloaded or cleared
+        items = [
+          HistoryItem(
+            taskId: 'mock_1',
+            title: 'Epic Skate Session V...',
+            platform: 'TikTok',
+            size: '14.2 MB',
+            thumbnail: 'https://images.unsplash.com/photo-1547447134-cd3f5c716030?w=200',
+            filePath: '',
+          ),
+          HistoryItem(
+            taskId: 'mock_2',
+            title: 'Truffle Pasta Recipe',
+            platform: 'Instagram',
+            size: '28.5 MB',
+            thumbnail: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=200',
+            filePath: '',
+          ),
+          HistoryItem(
+            taskId: 'mock_3',
+            title: 'Dog Reaction',
+            platform: 'TikTok',
+            size: '5.1 MB',
+            thumbnail: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200',
+            filePath: '',
+          ),
+        ];
+      }
+
+      if (mounted) {
+        setState(() {
+          _historyItems = items;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> clearAllHistory() async {
+    try {
+      final tasks = await FlutterDownloader.loadTasks();
+      if (tasks != null) {
+        for (var task in tasks) {
+          await FlutterDownloader.remove(
+            taskId: task.taskId,
+            shouldDeleteContent: false,
+          );
+        }
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      for (var key in keys) {
+        if (key.startsWith('thumb_')) {
+          await prefs.remove(key);
+        }
+      }
+
+      await prefs.setBool('history_cleared_permanently', true);
+
+      if (mounted) {
+        setState(() {
+          _historyItems.clear();
+        });
+      }
+    } catch (e) {
+      debugPrint('Clear history error: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentLanguage = ref.watch(languageProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -60,14 +188,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
       ),
       body: SafeArea(
-        child: _mockHistory.isEmpty
-            ? _buildEmptyState(isDark)
-            : _buildHistoryContent(isDark),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+            : _historyItems.isEmpty
+                ? _buildEmptyState(isDark, currentLanguage)
+                : _buildHistoryContent(isDark, currentLanguage),
       ),
     );
   }
 
-  Widget _buildEmptyState(bool isDark) {
+  Widget _buildEmptyState(bool isDark, String currentLanguage) {
+    final isId = currentLanguage == 'Bahasa Indonesia';
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppConstants.containerMargin),
@@ -88,7 +220,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              'No Downloads Yet',
+              isId ? 'Belum Ada Unduhan' : 'No Downloads Yet',
               style: TextStyle(
                 color: isDark ? Colors.white : AppColors.textPrimaryLight,
                 fontSize: 20,
@@ -97,7 +229,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Videos and audio clips you download will appear here.',
+              isId ? 'Video dan audio yang kamu download akan muncul di sini.' : 'Videos and audio clips you download will appear here.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -110,7 +242,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildHistoryContent(bool isDark) {
+  Widget _buildHistoryContent(bool isDark, String currentLanguage) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppConstants.containerMargin),
       child: Column(
@@ -120,7 +252,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Recent Downloads',
+                AppStrings.tr('recent_downloads', currentLanguage),
                 style: TextStyle(
                   color: isDark ? Colors.white : AppColors.textPrimaryLight,
                   fontSize: 20,
@@ -128,12 +260,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
               ),
               GestureDetector(
-                onTap: () {
-                  setState(() => _mockHistory.clear());
-                  widget.onClearHistoryTap();
-                },
+                onTap: widget.onClearHistoryTap,
                 child: Text(
-                  'Clear All',
+                  AppStrings.tr('clear_all', currentLanguage),
                   style: TextStyle(
                     color: isDark ? AppColors.primaryAccent : AppColors.primary,
                     fontSize: 14,
@@ -150,10 +279,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _mockHistory.length,
+            itemCount: _historyItems.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final item = _mockHistory[index];
+              final item = _historyItems[index];
               return Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -186,16 +315,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          Image.network(
-                            item['thumbnail']!,
-                            width: 72,
-                            height: 72,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              color: isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary,
-                              child: const Icon(Icons.movie_outlined, color: Colors.grey, size: 28),
-                            ),
-                          ),
+                          item.thumbnail.isNotEmpty
+                              ? Image.network(
+                                  item.thumbnail,
+                                  width: 72,
+                                  height: 72,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    color: isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary,
+                                    child: const Icon(Icons.movie_outlined, color: Colors.grey, size: 28),
+                                  ),
+                                )
+                              : Container(
+                                  color: isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary,
+                                  child: const Icon(Icons.movie_outlined, color: Colors.grey, size: 28),
+                                ),
                           Container(color: Colors.black26),
                           Container(
                             padding: const EdgeInsets.all(6),
@@ -220,7 +354,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item['title']!,
+                            item.title,
                             style: TextStyle(
                               color: isDark ? Colors.white : AppColors.textPrimaryLight,
                               fontSize: 15,
@@ -239,7 +373,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  item['platform']!,
+                                  item.platform,
                                   style: TextStyle(
                                     color: isDark ? AppColors.textSecondaryDark : const Color(0xFF666666),
                                     fontSize: 12,
@@ -249,7 +383,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                '•  ${item['size']}',
+                                '•  ${item.size}',
                                 style: TextStyle(
                                   color: isDark ? AppColors.textSecondaryDark : const Color(0xFF666666),
                                   fontSize: 12,
@@ -265,7 +399,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     // Trailing 3 dots action menu
                     IconButton(
                       onPressed: () {
-                        _showItemMenu(context, item['title']!);
+                        _showItemMenu(context, item);
                       },
                       icon: Icon(
                         Icons.more_vert_rounded,
@@ -282,7 +416,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  void _showItemMenu(BuildContext context, String title) {
+  void _showItemMenu(BuildContext context, HistoryItem item) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).brightness == Brightness.dark
@@ -298,7 +432,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              title,
+              item.title,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -307,21 +441,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ListTile(
               leading: const Icon(Icons.play_circle_outline),
               title: const Text('Play Video'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.share_outlined),
-              title: const Text('Share Video Link'),
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                Navigator.pop(context);
+                if (!item.taskId.startsWith('mock_')) {
+                  FlutterDownloader.open(taskId: item.taskId);
+                }
+              },
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: AppColors.error),
               title: const Text('Delete from History', style: TextStyle(color: AppColors.error)),
-              onTap: () {
-                setState(() {
-                  _mockHistory.removeWhere((h) => h['title'] == title);
-                });
+              onTap: () async {
                 Navigator.pop(context);
+                if (!item.taskId.startsWith('mock_')) {
+                  await FlutterDownloader.remove(
+                    taskId: item.taskId,
+                    shouldDeleteContent: false,
+                  );
+                }
+                setState(() {
+                  _historyItems.removeWhere((h) => h.taskId == item.taskId);
+                });
               },
             ),
           ],
