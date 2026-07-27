@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,11 +29,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TextEditingController _urlController = TextEditingController();
   String _selectedPlatform = 'tiktok';
   bool _showStorageBanner = false;
+  DownloadTask? _latestTask;
+  String _latestThumb = '';
 
   @override
   void initState() {
     super.initState();
     _checkPermissionStatus();
+    _loadLatestTask();
+  }
+
+  Future<void> _loadLatestTask() async {
+    try {
+      final tasks = await FlutterDownloader.loadTasks();
+      if (tasks != null && tasks.isNotEmpty) {
+        final completed = tasks.where((t) => t.status == DownloadTaskStatus.complete).toList();
+        if (completed.isNotEmpty) {
+          final prefs = await SharedPreferences.getInstance();
+          final last = completed.last;
+          final thumb = prefs.getString('thumb_${last.taskId}') ?? '';
+          if (mounted) {
+            setState(() {
+              _latestTask = last;
+              _latestThumb = thumb;
+            });
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _checkPermissionStatus() async {
@@ -189,23 +213,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: AppConstants.sectionGap),
+              if (_latestTask != null) ...[
+                const SizedBox(height: AppConstants.sectionGap),
 
-              // 4. Recent Download Preview Card
-              Text(
-                AppStrings.tr('recent_downloads', currentLanguage),
-                style: TextStyle(
-                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
+                // 4. Real Recent Download Preview Card
+                Text(
+                  AppStrings.tr('recent_downloads', currentLanguage),
+                  style: TextStyle(
+                    color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              RecentDownloadCard(
-                onTap: () {
-                  widget.onSearchVideo('https://vt.tiktok.com/ZSjXx/ demo');
-                },
-              ),
+                const SizedBox(height: 12),
+                RecentDownloadCard(
+                  title: _latestTask!.filename ?? 'Video_${_latestTask!.taskId.substring(0, 5)}.mp4',
+                  creator: 'Downloaded Media',
+                  views: 'MP4',
+                  thumbnailUrl: _latestThumb.isNotEmpty ? _latestThumb : 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400',
+                  onTap: () {
+                    FlutterDownloader.open(taskId: _latestTask!.taskId);
+                  },
+                ),
+              ],
             ],
           ),
         ),
