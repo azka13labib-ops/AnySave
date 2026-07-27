@@ -87,39 +87,6 @@ class HistoryScreenState extends ConsumerState<HistoryScreen> {
         }
       }
 
-      // Check if user cleared history permanently
-      final isClearedPermanently = prefs.getBool('history_cleared_permanently') ?? false;
-
-      if (items.isEmpty && !isClearedPermanently) {
-        // Fallback default mock items if user hasn't downloaded or cleared
-        items = [
-          HistoryItem(
-            taskId: 'mock_1',
-            title: 'Epic Skate Session V...',
-            platform: 'TikTok',
-            size: '14.2 MB',
-            thumbnail: 'https://images.unsplash.com/photo-1547447134-cd3f5c716030?w=200',
-            filePath: '',
-          ),
-          HistoryItem(
-            taskId: 'mock_2',
-            title: 'Truffle Pasta Recipe',
-            platform: 'Instagram',
-            size: '28.5 MB',
-            thumbnail: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=200',
-            filePath: '',
-          ),
-          HistoryItem(
-            taskId: 'mock_3',
-            title: 'Dog Reaction',
-            platform: 'TikTok',
-            size: '5.1 MB',
-            thumbnail: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=200',
-            filePath: '',
-          ),
-        ];
-      }
-
       if (mounted) {
         setState(() {
           _historyItems = items;
