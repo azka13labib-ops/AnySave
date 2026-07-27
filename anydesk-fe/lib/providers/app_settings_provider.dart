@@ -2,7 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// 1. Theme Mode Provider
+// 1. Auth State Provider
+final authStateProvider = StateNotifierProvider<AuthStateNotifier, bool>((ref) {
+  return AuthStateNotifier();
+});
+
+class AuthStateNotifier extends StateNotifier<bool> {
+  AuthStateNotifier() : super(false) {
+    checkStatus();
+  }
+
+  Future<void> checkStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool('is_signed_in') ?? false;
+  }
+
+  Future<void> signIn(String userName) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_signed_in', true);
+    await prefs.setString('user_name', userName);
+    state = true;
+  }
+
+  Future<void> signOut() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_signed_in', false);
+    state = false;
+  }
+}
+
+// 2. Theme Mode Provider
 final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
   return ThemeModeNotifier();
 });
@@ -31,7 +60,7 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   }
 }
 
-// 2. Language Provider
+// 3. Language Provider
 final languageProvider = StateNotifierProvider<LanguageNotifier, String>((ref) {
   return LanguageNotifier();
 });
@@ -53,7 +82,7 @@ class LanguageNotifier extends StateNotifier<String> {
   }
 }
 
-// 3. Translation Helper
+// 4. Translation Helper
 class AppStrings {
   static String tr(String key, String lang) {
     final isId = lang == 'Bahasa Indonesia';
