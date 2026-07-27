@@ -45,32 +45,18 @@ class _SignInScreenState extends State<SignInScreen> {
 
     setState(() => _isLoading = true);
 
-    final cleanSlug = rawName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
-    final userEmail = '${cleanSlug.isNotEmpty ? cleanSlug : 'user'}@anysave.app';
-    final userPassword = 'anysave_${cleanSlug}_secure_pass';
-
-    // 1. Sync & Record User directly to Supabase Auth Backend
+    // 1. Record Pure Name directly to Supabase Database Table `users_list`
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: userEmail,
-        password: userPassword,
-      );
-    } catch (_) {
-      try {
-        await Supabase.instance.client.auth.signUp(
-          email: userEmail,
-          password: userPassword,
-          data: {'display_name': rawName},
-        );
-      } catch (_) {}
-    }
+      await Supabase.instance.client.from('users_list').insert({
+        'name': rawName,
+      });
+    } catch (_) {}
 
     // 2. Persist Local Session
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_signed_in', true);
       await prefs.setString('user_name', rawName);
-      await prefs.setString('user_email', userEmail);
     } catch (_) {}
 
     if (mounted) {
