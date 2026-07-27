@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'theme/app_theme.dart';
 import 'screens/main_navigation_wrapper.dart';
+import 'providers/app_settings_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,12 +23,11 @@ void main() async {
     );
   } catch (_) {}
 
-  // Set system UI overlay style for immersive dark theme
+  // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: Color(0xFF0D0D0D),
-    systemNavigationBarIconBrightness: Brightness.light,
+    statusBarIconBrightness: Brightness.dark,
+    systemNavigationBarColor: Colors.transparent,
   ));
 
   runApp(
@@ -37,15 +37,17 @@ void main() async {
   );
 }
 
-class AnySaveApp extends StatelessWidget {
+class AnySaveApp extends ConsumerWidget {
   const AnySaveApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp(
       title: 'AnySave',
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.light,
+      themeMode: themeMode,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       home: const MainNavigationWrapper(),

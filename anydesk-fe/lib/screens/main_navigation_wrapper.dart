@@ -24,8 +24,10 @@ class MainNavigationWrapper extends StatefulWidget {
 class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   int _currentIndex = 0;
   final ApiService _apiService = ApiService();
+  final GlobalKey<HistoryScreenState> _historyKey = GlobalKey<HistoryScreenState>();
 
   void _navigateToScreen(Widget screen) {
+    FocusScope.of(context).unfocus();
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => screen),
@@ -33,6 +35,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   }
 
   Future<void> _handleSearchVideo(String url) async {
+    FocusScope.of(context).unfocus();
     if (url.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please paste a video link first')),
@@ -78,6 +81,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
 
   Future<void> _startActualDownload(MediaItem mediaItem, MediaOption option) async {
     Navigator.pop(context); // Close preview screen
+    FocusScope.of(context).unfocus();
 
     try {
       await Permission.storage.request();
@@ -92,6 +96,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
         fileName: fileName,
         showNotification: true,
         openFileFromNotification: true,
+        saveInPublicStorage: true,
       );
 
       if (taskId != null) {
@@ -99,14 +104,23 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
         if (mediaItem.thumbnail.isNotEmpty) {
           await prefs.setString('thumb_$taskId', mediaItem.thumbnail);
         }
+        await prefs.setBool('history_cleared_permanently', false);
       }
 
       _navigateToScreen(
         DownloadingScreen(
-          onCancel: () => Navigator.pop(context),
+          taskId: taskId,
+          mediaItem: mediaItem,
+          selectedOption: option,
+          onCancel: () {
+            Navigator.pop(context);
+            FocusScope.of(context).unfocus();
+          },
           onComplete: () {
             Navigator.pop(context); // Close progress
-            setState(() => _currentIndex = 1); // Switch to History
+            FocusScope.of(context).unfocus(); // Unfocus keyboard!
+            _historyKey.currentState?.loadHistory(); // Real-time sync History tab
+            setState(() => _currentIndex = 0); // Return to HOME screen
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Download complete! Saved to gallery.')),
             );
@@ -141,10 +155,12 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
             ),
           ),
           HistoryScreen(
+            key: _historyKey,
             onClearHistoryTap: () {
               ClearCacheDialog.show(
                 context,
                 onConfirm: () {
+                  _historyKey.currentState?.clearAllHistory();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('History cleared successfully.')),
                   );
@@ -157,6 +173,7 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
               ClearCacheDialog.show(
                 context,
                 onConfirm: () {
+                  _historyKey.currentState?.clearAllHistory();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Cache & history cleared successfully.')),
                   );
@@ -169,6 +186,10 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
       bottomNavigationBar: CustomBottomNav(
         currentIndex: _currentIndex,
         onTap: (index) {
+          FocusScope.of(context).unfocus(); // Ensure keyboard is unfocused on tab change
+          if (index == 1) {
+            _historyKey.currentState?.loadHistory();
+          }
           setState(() => _currentIndex = index);
         },
       ),
