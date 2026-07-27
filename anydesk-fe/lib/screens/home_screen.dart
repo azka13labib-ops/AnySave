@@ -123,7 +123,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AnySave'),
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/icons/app_logo.png',
+                width: 28,
+                height: 28,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(
+                  Icons.download_rounded,
+                  color: primaryColor,
+                  size: 26,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'AnySave',
+              style: TextStyle(
+                color: primaryColor,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
         actions: [
           GestureDetector(
             onTap: widget.onSignInTap,
@@ -144,6 +170,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: isDark ? AppColors.borderDark : const Color(0xFFE9E7ED),
+            height: 1,
+          ),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

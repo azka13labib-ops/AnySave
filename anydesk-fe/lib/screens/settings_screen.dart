@@ -106,32 +106,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        titleSpacing: 16,
         title: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.download_rounded,
-                color: Colors.white,
-                size: 16,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/icons/app_logo.png',
+                width: 28,
+                height: 28,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(
+                  Icons.download_rounded,
+                  color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                  size: 26,
+                ),
               ),
             ),
-            const SizedBox(width: 8),
-            const Text(
+            const SizedBox(width: 10),
+            Text(
               'AnySave',
               style: TextStyle(
-                color: AppColors.primary,
-                fontSize: 18,
+                color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                fontSize: 20,
                 fontWeight: FontWeight.w800,
               ),
             ),
           ],
         ),
+        actions: [
+          GestureDetector(
+            onTap: _showEditProfileModal,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: (isDark ? AppColors.primaryAccent : AppColors.primary).withValues(alpha: 0.15),
+                child: Text(
+                  _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(

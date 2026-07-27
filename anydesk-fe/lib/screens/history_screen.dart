@@ -40,11 +40,19 @@ class HistoryScreen extends ConsumerStatefulWidget {
 class HistoryScreenState extends ConsumerState<HistoryScreen> {
   List<HistoryItem> _historyItems = [];
   bool _isLoading = true;
+  String _userName = 'User';
 
   @override
   void initState() {
     super.initState();
+    _loadUserName();
     loadHistory();
+  }
+
+  Future<void> _loadUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('user_name') ?? 'User';
+    if (mounted) setState(() => _userName = name);
   }
 
   Future<void> loadHistory() async {
@@ -137,15 +145,50 @@ class HistoryScreenState extends ConsumerState<HistoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
-        title: Text(
-          'AnySave',
-          style: TextStyle(
-            color: isDark ? AppColors.primaryAccent : AppColors.primary,
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-          ),
+        title: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/icons/app_logo.png',
+                width: 28,
+                height: 28,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(
+                  Icons.download_rounded,
+                  color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                  size: 26,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'AnySave',
+              style: TextStyle(
+                color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: CircleAvatar(
+              radius: 16,
+              backgroundColor: (isDark ? AppColors.primaryAccent : AppColors.primary).withValues(alpha: 0.15),
+              child: Text(
+                _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                ),
+              ),
+            ),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(
