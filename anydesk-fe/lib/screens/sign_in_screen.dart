@@ -34,33 +34,75 @@ class _SignInScreenState extends State<SignInScreen> {
     final rawName = _nameController.text.trim();
 
     if (rawName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Silakan masukkan nama kamu terlebih dahulu'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Silakan masukkan nama kamu terlebih dahulu'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
       return;
     }
 
     setState(() => _isLoading = true);
 
-    // 1. Persist Local Session
+    try {
+      final supabase = Supabase.instance.client;
+
+      // 1. Cek apakah nama sudah terdaftar
+      final existingUsers = await supabase
+          .from('users_list')
+          .select('id, name')
+          .eq('name', rawName)
+          .limit(1);
+
+      if (existingUsers.isNotEmpty) {
+        // Nama sudah ada → langsung login tanpa insert duplikat
+        debugPrint('User "$rawName" sudah terdaftar, langsung login.');
+      } else {
+        // 2. Rate limit: cek jumlah akun baru dalam 10 menit terakhir
+        final tenMinutesAgo = DateTime.now()
+            .subtract(const Duration(minutes: 10))
+            .toUtc()
+            .toIso8601String();
+
+        final recentUsers = await supabase
+            .from('users_list')
+            .select('id')
+            .gte('created_at', tenMinutesAgo);
+
+        if (recentUsers.length >= 3) {
+          // Rate limit tercapai
+          if (mounted) {
+            setState(() => _isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Terlalu banyak pendaftaran baru. Coba lagi dalam beberapa menit.'),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+          return;
+        }
+
+        // 3. Daftarkan nama baru ke Supabase
+        await supabase.from('users_list').insert({
+          'name': rawName,
+        });
+        debugPrint('User baru "$rawName" berhasil didaftarkan ke Supabase.');
+      }
+    } catch (e) {
+      debugPrint('Supabase error: $e');
+    }
+
+    // 4. Persist local session
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_signed_in', true);
       await prefs.setString('user_name', rawName);
     } catch (_) {}
-
-    // 2. Record Pure Name directly to Supabase Database Table `users_list`
-    try {
-      await Supabase.instance.client.from('users_list').insert({
-        'name': rawName,
-      });
-      debugPrint('Successfully recorded user $rawName to Supabase users_list');
-    } catch (e) {
-      debugPrint('Failed to record user to Supabase: $e');
-    }
 
     if (mounted) {
       setState(() => _isLoading = false);
