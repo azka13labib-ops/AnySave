@@ -31,12 +31,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _showStorageBanner = false;
   DownloadTask? _latestTask;
   String _latestThumb = '';
+  String _userName = 'User';
 
   @override
   void initState() {
     super.initState();
     _checkPermissionStatus();
     _loadLatestTask();
+    _loadUserName();
+  }
+
+  Future<void> _loadUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('user_name') ?? 'User';
+    if (mounted) setState(() => _userName = name);
   }
 
   Future<void> _loadLatestTask() async {
@@ -117,13 +125,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: AppBar(
         title: const Text('AnySave'),
         actions: [
-          IconButton(
-            onPressed: widget.onSignInTap,
-            icon: Icon(
-              Icons.account_circle_outlined,
-              color: isDark ? Colors.white : AppColors.primary,
+          GestureDetector(
+            onTap: widget.onSignInTap,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: CircleAvatar(
+                radius: 16,
+                backgroundColor: primaryColor.withValues(alpha: 0.15),
+                child: Text(
+                  _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: primaryColor,
+                  ),
+                ),
+              ),
             ),
-            tooltip: 'Sign In',
           ),
         ],
       ),

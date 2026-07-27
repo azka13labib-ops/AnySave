@@ -11,7 +11,6 @@ import 'history_screen.dart';
 import 'settings_screen.dart';
 import 'video_preview_screen.dart';
 import 'downloading_screen.dart';
-import 'sign_in_screen.dart';
 import 'error_state_screen.dart';
 
 class MainNavigationWrapper extends StatefulWidget {
@@ -142,17 +141,9 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
         children: [
           HomeScreen(
             onSearchVideo: _handleSearchVideo,
-            onSignInTap: () => _navigateToScreen(
-              SignInScreen(
-                onBackPressed: () => Navigator.pop(context),
-                onSignInSuccess: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Signed in successfully!')),
-                  );
-                },
-              ),
-            ),
+            onSignInTap: () {
+              setState(() => _currentIndex = 2);
+            },
           ),
           HistoryScreen(
             key: _historyKey,
