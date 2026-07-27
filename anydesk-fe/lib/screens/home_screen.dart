@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_colors.dart';
@@ -7,8 +8,9 @@ import '../theme/app_constants.dart';
 import '../widgets/storage_banner.dart';
 import '../widgets/platform_toggle.dart';
 import '../widgets/recent_download_card.dart';
+import '../providers/app_settings_provider.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   final Function(String url) onSearchVideo;
   final VoidCallback onSignInTap;
 
@@ -19,10 +21,10 @@ class HomeScreen extends StatefulWidget {
   });
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TextEditingController _urlController = TextEditingController();
   String _selectedPlatform = 'tiktok';
   bool _showStorageBanner = false;
@@ -85,6 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = isDark ? AppColors.primaryAccent : AppColors.primary;
+    final currentLanguage = ref.watch(languageProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -113,18 +116,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
               // 2. Select Platform Toggle
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 8),
-                child: Text(
-                  'SELECT PLATFORM',
-                  style: TextStyle(
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
+              Text(
+                AppStrings.tr('select_platform', currentLanguage),
+                style: TextStyle(
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
+              const SizedBox(height: 8),
               PlatformToggle(
                 selectedPlatform: _selectedPlatform,
                 onPlatformChanged: (platform) {
@@ -134,92 +134,76 @@ class _HomeScreenState extends State<HomeScreen> {
 
               const SizedBox(height: AppConstants.sectionGap),
 
-              // 3. Search / URL Input Area
+              // 3. Search Input Section
               Container(
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.lightSurfaceSecondary,
-                  borderRadius: AppConstants.borderRadiusLarge,
+                  color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isDark ? AppColors.borderDark : const Color(0xFFE9E7ED),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _urlController,
-                        style: TextStyle(
-                          color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                          fontSize: 14,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Paste ${_selectedPlatform == "tiktok" ? "TikTok" : "Instagram"} link here...',
-                          hintStyle: TextStyle(
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                            fontSize: 13.5,
+                  boxShadow: isDark
+                      ? []
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
                           ),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        ],
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: _urlController,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                        fontSize: 14,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: AppStrings.tr('search_placeholder', currentLanguage),
+                        prefixIcon: Icon(
+                          Icons.link_rounded,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                        suffixIcon: IconButton(
+                          onPressed: _pasteFromClipboard,
+                          icon: Icon(
+                            Icons.content_paste_rounded,
+                            color: primaryColor,
+                          ),
+                          tooltip: 'Paste Link',
                         ),
                       ),
                     ),
-                    IconButton(
-                      onPressed: _pasteFromClipboard,
-                      icon: Icon(
-                        Icons.content_paste_rounded,
-                        color: primaryColor,
-                        size: 20,
-                      ),
-                      tooltip: 'Paste link',
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        widget.onSearchVideo(_urlController.text.trim());
+                      },
+                      icon: const Icon(Icons.search_rounded, size: 20),
+                      label: Text(AppStrings.tr('search_button', currentLanguage)),
                     ),
-                    const SizedBox(width: 4),
                   ],
                 ),
               ),
 
-              const SizedBox(height: AppConstants.stackGap),
-
-              // Search Video Primary Button
-              ElevatedButton.icon(
-                onPressed: () {
-                  FocusScope.of(context).unfocus();
-                  widget.onSearchVideo(_urlController.text.trim());
-                },
-                icon: const Icon(Icons.search_rounded, size: 20),
-                label: const Text('Search video'),
-              ),
-
               const SizedBox(height: AppConstants.sectionGap),
 
-              // 4. Recent Download Preview Section
-              const Padding(
-                padding: EdgeInsets.only(left: 4, bottom: 8),
-                child: Text(
-                  'RECENT DOWNLOAD',
-                  style: TextStyle(
-                    color: AppColors.textSecondaryDark,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
+              // 4. Recent Download Preview Card
+              Text(
+                AppStrings.tr('recent_downloads', currentLanguage),
+                style: TextStyle(
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
+              const SizedBox(height: 12),
               RecentDownloadCard(
-                title: 'Morning Coffee Routine Aesthetic',
-                creator: '@coffeelover',
-                views: '2.4M views',
-                thumbnailUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=300',
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Playing preview video...')),
-                  );
-                },
-                onShare: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Sharing video link...')),
-                  );
+                  widget.onSearchVideo('https://vt.tiktok.com/ZSjXx/ demo');
                 },
               ),
             ],

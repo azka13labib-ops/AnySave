@@ -269,7 +269,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
               child: ElevatedButton.icon(
                 onPressed: () => widget.onStartDownload(selectedOption),
                 icon: const Icon(Icons.download_rounded, size: 20),
-                label: Text('Download (${selectedOption.quality.isNotEmpty ? selectedOption.quality : selectedOption.extension.toUpperCase()})'),
+                label: Text('Download (${selectedOption.renderTitle.replaceAll('Download ', '').trim()})'),
               ),
             ),
           ],
