@@ -1,16 +1,22 @@
-# anydesk_fe
+# AnySave Frontend (Flutter App)
 
-A new Flutter project.
+Dokumentasi teknis untuk aplikasi Flutter AnySave.
 
-## Getting Started
+## Fitur Utama
+- **TikTok & Instagram Media Extractor** (No Watermark)
+- **1-Column Fast Login** (Murni Nama Pengguna, Tanpa Password)
+- **Supabase Cloud Sync** (`users_list` Table)
+- **Riverpod State Management** (`authStateProvider`, `themeModeProvider`)
+- **Rate Limit Protection** (Max 3 akun baru per 10 menit)
 
-This project is a starting point for a Flutter application.
+## Menjalankan Aplikasi
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Konfigurasi Environment (.env)
+```env
+SUPABASE_FUNCTIONS_URL=https://kmzwrypgdlxzzsubmepc.supabase.co/functions/v1
+SUPABASE_ANON_KEY=your_supabase_anon_key
+```
