@@ -7,7 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_constants.dart';
 import '../providers/app_settings_provider.dart';
-import 'sign_in_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   final VoidCallback onClearCacheTap;
@@ -163,22 +162,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               isDark: isDark,
               children: [
                 ListTile(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => SignInScreen(
-                          onBackPressed: () => Navigator.pop(context),
-                          onSignInSuccess: () async {
-                            final prefs = await SharedPreferences.getInstance();
-                            await prefs.setBool('is_signed_in', true);
-                            await prefs.setString('user_name', 'Alex User');
-                            _loadSettings();
-                            if (mounted) Navigator.pop(context);
-                          },
+                  onTap: () async {
+                    if (_isSignedIn) {
+                      showDialog(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('Sign Out'),
+                          content: const Text('Are you sure you want to sign out? You will need to log in again to use AnySave.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(dialogContext),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                Navigator.pop(dialogContext);
+                                ref.read(authStateProvider.notifier).signOut();
+                              },
+                              child: const Text('Sign Out', style: TextStyle(color: AppColors.error)),
+                            ),
+                          ],
                         ),
-                      ),
-                    );
+                      );
+                    }
                   },
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   leading: Container(
