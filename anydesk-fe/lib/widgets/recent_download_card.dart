@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_constants.dart';
 
 class RecentDownloadCard extends StatelessWidget {
   final String title;
@@ -12,10 +11,10 @@ class RecentDownloadCard extends StatelessWidget {
 
   const RecentDownloadCard({
     super.key,
-    required this.title,
-    required this.creator,
-    required this.views,
-    required this.thumbnailUrl,
+    this.title = 'Morning Routine Aesthetic.mp4',
+    this.creator = '@creator_user',
+    this.views = '1.2M views',
+    this.thumbnailUrl = 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400',
     this.onTap,
     this.onShare,
   });
@@ -23,12 +22,13 @@ class RecentDownloadCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.primaryAccent : AppColors.primary;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-        borderRadius: AppConstants.borderRadiusLarge,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark ? AppColors.borderDark : const Color(0xFFE9E7ED),
         ),
@@ -36,51 +36,63 @@ class RecentDownloadCard extends StatelessWidget {
             ? []
             : [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
               ],
       ),
       child: Row(
         children: [
-          // Thumbnail with Play Icon
+          // Thumbnail with play button overlay
           GestureDetector(
             onTap: onTap,
-            child: Container(
+            child: SizedBox(
               width: 64,
               height: 64,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary,
-                borderRadius: AppConstants.borderRadiusMedium,
-              ),
-              clipBehavior: Clip.antiAlias,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  thumbnailUrl.isNotEmpty
-                      ? Image.network(
-                          thumbnailUrl,
-                          width: 64,
-                          height: 64,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => _buildFallback(isDark),
-                        )
-                      : _buildFallback(isDark),
-                  Container(
-                    color: Colors.black26,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      thumbnailUrl,
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: 64,
+                        height: 64,
+                        color: isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary,
+                        child: const Icon(Icons.movie_outlined, color: Colors.grey),
+                      ),
+                    ),
                   ),
-                  Icon(
-                    Icons.play_circle_fill_rounded,
-                    color: isDark ? AppColors.primaryAccent : AppColors.primary,
-                    size: 32,
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black26,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(width: 14),
-          // Info
+
+          // Content Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,44 +101,48 @@ class RecentDownloadCard extends StatelessWidget {
                   title,
                   style: TextStyle(
                     color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                    fontWeight: FontWeight.w700,
                     fontSize: 14,
+                    fontWeight: FontWeight.w700,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  '$creator • $views',
-                  style: TextStyle(
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                    fontSize: 12,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  children: [
+                    Text(
+                      creator,
+                      style: TextStyle(
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '• $views',
+                      style: TextStyle(
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          // Share Action Button
+
+          // Share Button Action
           IconButton(
-            onPressed: onShare,
+            onPressed: onShare ?? onTap,
             icon: Icon(
               Icons.share_outlined,
-              color: isDark ? AppColors.primaryAccent : AppColors.primary,
+              color: primaryColor,
               size: 20,
             ),
+            tooltip: 'Share',
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFallback(bool isDark) {
-    return Container(
-      color: isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary,
-      child: const Center(
-        child: Icon(Icons.movie_outlined, color: Colors.grey, size: 28),
       ),
     );
   }

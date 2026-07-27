@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_constants.dart';
+import '../providers/app_settings_provider.dart';
 
-class CustomBottomNav extends StatelessWidget {
+class CustomBottomNav extends ConsumerWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
@@ -13,8 +15,9 @@ class CustomBottomNav extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentLanguage = ref.watch(languageProvider);
 
     return Container(
       height: 72,
@@ -30,9 +33,9 @@ class CustomBottomNav extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(context, 0, Icons.home_rounded, 'Home'),
-          _buildNavItem(context, 1, Icons.history_rounded, 'History'),
-          _buildNavItem(context, 2, Icons.settings_rounded, 'Settings'),
+          _buildNavItem(context, 0, Icons.home_rounded, AppStrings.tr('home', currentLanguage)),
+          _buildNavItem(context, 1, Icons.history_rounded, AppStrings.tr('history', currentLanguage)),
+          _buildNavItem(context, 2, Icons.settings_rounded, AppStrings.tr('settings', currentLanguage)),
         ],
       ),
     );
