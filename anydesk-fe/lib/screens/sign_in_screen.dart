@@ -6,7 +6,7 @@ import '../theme/app_constants.dart';
 
 class SignInScreen extends StatefulWidget {
   final VoidCallback onBackPressed;
-  final VoidCallback onSignInSuccess;
+  final Function(String name) onSignInSuccess;
   final bool showGuestButton;
 
   const SignInScreen({
@@ -45,23 +45,26 @@ class _SignInScreenState extends State<SignInScreen> {
 
     setState(() => _isLoading = true);
 
-    // 1. Record Pure Name directly to Supabase Database Table `users_list`
-    try {
-      await Supabase.instance.client.from('users_list').insert({
-        'name': rawName,
-      });
-    } catch (_) {}
-
-    // 2. Persist Local Session
+    // 1. Persist Local Session
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_signed_in', true);
       await prefs.setString('user_name', rawName);
     } catch (_) {}
 
+    // 2. Record Pure Name directly to Supabase Database Table `users_list`
+    try {
+      await Supabase.instance.client.from('users_list').insert({
+        'name': rawName,
+      });
+      debugPrint('Successfully recorded user $rawName to Supabase users_list');
+    } catch (e) {
+      debugPrint('Failed to record user to Supabase: $e');
+    }
+
     if (mounted) {
       setState(() => _isLoading = false);
-      widget.onSignInSuccess();
+      widget.onSignInSuccess(rawName);
     }
   }
 

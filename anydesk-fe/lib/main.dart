@@ -16,9 +16,10 @@ void main() async {
   try {
     await dotenv.load(fileName: ".env");
     final supabaseUrl = dotenv.env['SUPABASE_FUNCTIONS_URL']?.replaceAll('/functions/v1', '') ?? 'https://kmzwrypgdlxzzsubmepc.supabase.co';
+    final anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? 'dummy-anon-key';
     await Supabase.initialize(
       url: supabaseUrl,
-      anonKey: 'dummy-anon-key',
+      anonKey: anonKey,
     );
   } catch (_) {}
 
@@ -63,8 +64,8 @@ class AnySaveApp extends ConsumerWidget {
           : SignInScreen(
               showGuestButton: false,
               onBackPressed: () {},
-              onSignInSuccess: () {
-                ref.read(authStateProvider.notifier).signIn('User');
+              onSignInSuccess: (name) {
+                ref.read(authStateProvider.notifier).signIn(name);
               },
             ),
     );
