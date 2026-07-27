@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import '../data/models/media_item.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_constants.dart';
 
 class VideoPreviewScreen extends StatefulWidget {
-  final VoidCallback onStartDownload;
+  final MediaItem? mediaItem;
+  final Function(MediaOption selectedOption) onStartDownload;
   final VoidCallback onBackPressed;
 
   const VideoPreviewScreen({
     super.key,
+    this.mediaItem,
     required this.onStartDownload,
     required this.onBackPressed,
   });
@@ -17,11 +20,40 @@ class VideoPreviewScreen extends StatefulWidget {
 }
 
 class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
-  String _selectedQuality = '720'; // '720' or '1080'
+  int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final item = widget.mediaItem;
+
+    final title = item?.title ?? 'Nature Vibes';
+    final thumbnail = item?.thumbnail.isNotEmpty == true
+        ? item!.thumbnail
+        : 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600';
+
+    final options = (item?.links.isNotEmpty == true)
+        ? item!.links
+        : [
+            MediaOption(
+              url: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4',
+              quality: '720p',
+              extension: 'mp4',
+              renderTitle: '720p HD',
+            ),
+            MediaOption(
+              url: 'https://sample-videos.com/video321/mp4/1080/big_buck_bunny_1080p_1mb.mp4',
+              quality: '1080p',
+              extension: 'mp4',
+              renderTitle: '1080p Full HD',
+            ),
+          ];
+
+    if (_selectedIndex >= options.length) {
+      _selectedIndex = 0;
+    }
+
+    final selectedOption = options[_selectedIndex];
 
     return Scaffold(
       appBar: AppBar(
@@ -62,7 +94,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Thumbnail with overlay play and duration badge
+                          // Thumbnail with overlay play button
                           SizedBox(
                             height: 220,
                             width: double.infinity,
@@ -70,7 +102,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                               alignment: Alignment.center,
                               children: [
                                 Image.network(
-                                  'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600',
+                                  thumbnail,
                                   width: double.infinity,
                                   height: 220,
                                   fit: BoxFit.cover,
@@ -92,25 +124,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                                     size: 36,
                                   ),
                                 ),
-                                Positioned(
-                                  bottom: 12,
-                                  right: 12,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.7),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Text(
-                                      '0:15',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -122,12 +135,14 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Nature Vibes',
+                                  title,
                                   style: TextStyle(
                                     color: isDark ? Colors.white : AppColors.textPrimaryLight,
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
                                   ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 6),
                                 Row(
@@ -143,7 +158,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      '@traveler',
+                                      'AnySave Downloader',
                                       style: TextStyle(
                                         color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                                         fontSize: 14,
@@ -160,7 +175,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
                     const SizedBox(height: AppConstants.sectionGap),
 
-                    // 2. Quality Selector Segment Control
+                    // 2. Quality Options Selector
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -174,7 +189,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Video Quality',
+                            'Select Download Quality',
                             style: TextStyle(
                               color: isDark ? Colors.white : AppColors.textPrimaryLight,
                               fontSize: 15,
@@ -182,109 +197,55 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Container(
-                            height: 44,
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => setState(() => _selectedQuality = '720'),
-                                    behavior: HitTestBehavior.opaque,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: _selectedQuality == '720'
-                                            ? (isDark ? AppColors.darkSurface : AppColors.lightSurface)
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(8),
-                                        boxShadow: _selectedQuality == '720'
-                                            ? [
-                                                BoxShadow(
-                                                  color: Colors.black.withValues(alpha: 0.05),
-                                                  blurRadius: 4,
-                                                  offset: const Offset(0, 1),
-                                                ),
-                                              ]
-                                            : [],
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '720p (SD)',
-                                          style: TextStyle(
-                                            color: _selectedQuality == '720'
-                                                ? (isDark ? Colors.white : AppColors.textPrimaryLight)
-                                                : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                                            fontWeight: _selectedQuality == '720' ? FontWeight.w700 : FontWeight.w500,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
+                          Column(
+                            children: List.generate(options.length, (index) {
+                              final opt = options[index];
+                              final isSelected = _selectedIndex == index;
+                              final label = opt.renderTitle.replaceAll('Download ', '');
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? (isDark
+                                          ? AppColors.primaryAccent.withValues(alpha: 0.15)
+                                          : AppColors.primary.withValues(alpha: 0.08))
+                                      : (isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? (isDark ? AppColors.primaryAccent : AppColors.primary)
+                                        : Colors.transparent,
+                                  ),
+                                ),
+                                child: ListTile(
+                                  onTap: () => setState(() => _selectedIndex = index),
+                                  leading: Icon(
+                                    isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                                    color: isSelected
+                                        ? (isDark ? AppColors.primaryAccent : AppColors.primary)
+                                        : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                  ),
+                                  title: Text(
+                                    label,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? (isDark ? AppColors.primaryAccent : AppColors.primary)
+                                          : (isDark ? Colors.white : AppColors.textPrimaryLight),
+                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    '.${opt.extension.toUpperCase()}',
+                                    style: TextStyle(
+                                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () => setState(() => _selectedQuality = '1080'),
-                                    behavior: HitTestBehavior.opaque,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: _selectedQuality == '1080'
-                                            ? (isDark ? AppColors.darkSurface : AppColors.lightSurface)
-                                            : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(8),
-                                        boxShadow: _selectedQuality == '1080'
-                                            ? [
-                                                BoxShadow(
-                                                  color: Colors.black.withValues(alpha: 0.05),
-                                                  blurRadius: 4,
-                                                  offset: const Offset(0, 1),
-                                                ),
-                                              ]
-                                            : [],
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '1080p (HD)',
-                                          style: TextStyle(
-                                            color: _selectedQuality == '1080'
-                                                ? (isDark ? Colors.white : AppColors.textPrimaryLight)
-                                                : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                                            fontWeight: _selectedQuality == '1080' ? FontWeight.w700 : FontWeight.w500,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Est. Size',
-                                style: TextStyle(
-                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                _selectedQuality == '720' ? '4.2 MB' : '12.8 MB',
-                                style: TextStyle(
-                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
+                              );
+                            }),
                           ),
                         ],
                       ),
@@ -306,9 +267,9 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                 ),
               ),
               child: ElevatedButton.icon(
-                onPressed: widget.onStartDownload,
+                onPressed: () => widget.onStartDownload(selectedOption),
                 icon: const Icon(Icons.download_rounded, size: 20),
-                label: const Text('Download Video'),
+                label: Text('Download (${selectedOption.quality.isNotEmpty ? selectedOption.quality : selectedOption.extension.toUpperCase()})'),
               ),
             ),
           ],
