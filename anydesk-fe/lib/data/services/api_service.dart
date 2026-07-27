@@ -5,24 +5,31 @@ import '../models/media_item.dart';
 class ApiService {
   final Dio _dio = Dio();
 
-  String _detectPlatform(String url) {
-    if (url.contains('tiktok.com') || url.contains('vt.tiktok.com')) {
-      return 'tiktok';
-    } else if (url.contains('instagram.com')) {
-      return 'instagram';
-    } else if (url.contains('youtube.com') || url.contains('youtu.be')) {
-      return 'youtube';
+  String _cleanUrl(String input) {
+    final regExp = RegExp(r'https?://[^\s]+');
+    final match = regExp.firstMatch(input);
+    if (match != null) {
+      return match.group(0)!;
     }
-    return '';
+    return input.trim();
   }
 
-  Future<MediaItem> fetchMediaDetails(String url) async {
-    final platform = _detectPlatform(url);
-    if (platform.isEmpty) {
-      throw Exception('Platform dari URL tidak didukung.');
+  String _detectPlatform(String url) {
+    final lower = url.toLowerCase();
+    if (lower.contains('instagram.com') || lower.contains('instagr.am')) {
+      return 'instagram';
+    } else if (lower.contains('youtube.com') || lower.contains('youtu.be')) {
+      return 'youtube';
     }
+    // Default to tiktok for all shortlinks and TikTok variants
+    return 'tiktok';
+  }
 
-    final baseUrl = dotenv.env['SUPABASE_FUNCTIONS_URL'] ?? 'http://127.0.0.1:54321/functions/v1';
+  Future<MediaItem> fetchMediaDetails(String rawUrl) async {
+    final cleanUrl = _cleanUrl(rawUrl);
+    final platform = _detectPlatform(cleanUrl);
+
+    final baseUrl = dotenv.env['SUPABASE_FUNCTIONS_URL'] ?? 'https://kmzwrypgdlxzzsubmepc.supabase.co/functions/v1';
     final endpoint = '$baseUrl/video-downloader';
 
     try {
@@ -30,7 +37,7 @@ class ApiService {
         endpoint,
         data: {
           'platform': platform,
-          'url': url,
+          'url': cleanUrl,
         },
         options: Options(
           headers: {
@@ -42,12 +49,11 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        // Cek jika API mereturn error object (bisa terjadi jika URL salah tapi 200 OK)
         if (response.data['error'] != null) {
-            throw Exception(response.data['error']);
+          throw Exception(response.data['error']);
         }
         if (response.data['success'] == false && response.data['message'] != null) {
-            throw Exception(response.data['message']);
+          throw Exception(response.data['message']);
         }
         
         return MediaItem.fromJson(response.data);
@@ -56,7 +62,7 @@ class ApiService {
       }
     } on DioException catch (e) {
       if (e.response != null && e.response?.data != null) {
-        String msg = e.response?.data['error'] ?? e.response?.data['message'] ?? e.message;
+        String msg = e.response?.data['msg'] ?? e.response?.data['error'] ?? e.response?.data['message'] ?? e.message;
         throw Exception('Error dari server: $msg');
       }
       throw Exception('Gagal menghubungi server: ${e.message}');
