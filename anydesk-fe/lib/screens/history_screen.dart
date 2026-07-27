@@ -6,6 +6,8 @@ import '../theme/app_colors.dart';
 import '../theme/app_constants.dart';
 import '../providers/app_settings_provider.dart';
 
+enum MediaType { video, photo, music }
+
 class HistoryItem {
   final String taskId;
   final String title;
@@ -13,6 +15,7 @@ class HistoryItem {
   final String size;
   final String thumbnail;
   final String filePath;
+  final MediaType mediaType;
 
   HistoryItem({
     required this.taskId,
@@ -21,7 +24,21 @@ class HistoryItem {
     required this.size,
     required this.thumbnail,
     required this.filePath,
+    required this.mediaType,
   });
+
+  static MediaType detectType(String filename) {
+    final ext = filename.toLowerCase().split('.').last;
+    const videoExts = {'mp4', 'mov', 'mkv', 'avi', 'webm', 'flv', '3gp', 'm4v'};
+    const imageExts = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'bmp'};
+    const audioExts = {'mp3', 'm4a', 'aac', 'wav', 'ogg', 'flac', 'opus'};
+
+    if (videoExts.contains(ext)) return MediaType.video;
+    if (imageExts.contains(ext)) return MediaType.photo;
+    if (audioExts.contains(ext)) return MediaType.music;
+    // Default: jika tidak dikenal ekstensinya, anggap video (mp4 paling umum)
+    return MediaType.video;
+  }
 }
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -37,16 +54,25 @@ class HistoryScreen extends ConsumerStatefulWidget {
   ConsumerState<HistoryScreen> createState() => HistoryScreenState();
 }
 
-class HistoryScreenState extends ConsumerState<HistoryScreen> {
+class HistoryScreenState extends ConsumerState<HistoryScreen>
+    with SingleTickerProviderStateMixin {
   List<HistoryItem> _historyItems = [];
   bool _isLoading = true;
   String _userName = 'User';
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     _loadUserName();
     loadHistory();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserName() async {
@@ -69,16 +95,33 @@ class HistoryScreenState extends ConsumerState<HistoryScreen> {
         for (var task in tasks) {
           if (task.status == DownloadTaskStatus.complete) {
             final thumb = prefs.getString('thumb_${task.taskId}') ?? '';
-            final fileName = task.filename ?? 'Video_${task.taskId.substring(0, 5)}.mp4';
-            final filePath = '${task.savedDir}/${task.filename}';
+            final fileName = task.filename ?? 'AnySave_${task.taskId.substring(0, 5)}.mp4';
+            final filePath = '${task.savedDir}/$fileName';
+            final mediaType = HistoryItem.detectType(fileName);
 
             String platform = 'AnySave';
             if (fileName.toLowerCase().contains('tiktok')) {
               platform = 'TikTok';
-            } else if (fileName.toLowerCase().contains('instagram') || fileName.toLowerCase().contains('ig')) {
+            } else if (fileName.toLowerCase().contains('instagram') ||
+                fileName.toLowerCase().contains('ig')) {
               platform = 'Instagram';
-            } else if (fileName.toLowerCase().contains('youtube') || fileName.toLowerCase().contains('yt')) {
+            } else if (fileName.toLowerCase().contains('youtube') ||
+                fileName.toLowerCase().contains('yt')) {
               platform = 'YouTube';
+            }
+
+            // Label ukuran berdasarkan tipe media
+            String sizeLabel;
+            switch (mediaType) {
+              case MediaType.video:
+                sizeLabel = 'Video MP4';
+                break;
+              case MediaType.photo:
+                sizeLabel = 'Photo';
+                break;
+              case MediaType.music:
+                sizeLabel = 'Audio MP3';
+                break;
             }
 
             items.add(
@@ -86,9 +129,10 @@ class HistoryScreenState extends ConsumerState<HistoryScreen> {
                 taskId: task.taskId,
                 title: fileName,
                 platform: platform,
-                size: 'Video MP4',
+                size: sizeLabel,
                 thumbnail: thumb,
                 filePath: filePath,
+                mediaType: mediaType,
               ),
             );
           }
@@ -138,9 +182,13 @@ class HistoryScreenState extends ConsumerState<HistoryScreen> {
     }
   }
 
+  List<HistoryItem> _filteredItems(MediaType type) =>
+      _historyItems.where((item) => item.mediaType == type).toList();
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.primaryAccent : AppColors.primary;
     final currentLanguage = ref.watch(languageProvider);
 
     return Scaffold(
@@ -156,7 +204,7 @@ class HistoryScreenState extends ConsumerState<HistoryScreen> {
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Icon(
                   Icons.download_rounded,
-                  color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                  color: primaryColor,
                   size: 26,
                 ),
               ),
@@ -165,7 +213,7 @@ class HistoryScreenState extends ConsumerState<HistoryScreen> {
             Text(
               'AnySave',
               style: TextStyle(
-                color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                color: primaryColor,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
               ),
@@ -177,96 +225,164 @@ class HistoryScreenState extends ConsumerState<HistoryScreen> {
             padding: const EdgeInsets.only(right: 16),
             child: CircleAvatar(
               radius: 16,
-              backgroundColor: (isDark ? AppColors.primaryAccent : AppColors.primary).withValues(alpha: 0.15),
+              backgroundColor: primaryColor.withValues(alpha: 0.15),
               child: Text(
                 _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                  color: primaryColor,
                 ),
               ),
             ),
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(
-            color: isDark ? AppColors.borderDark : const Color(0xFFE9E7ED),
-            height: 1,
+          preferredSize: const Size.fromHeight(49),
+          child: Column(
+            children: [
+              Container(
+                color: isDark ? AppColors.borderDark : const Color(0xFFE9E7ED),
+                height: 1,
+              ),
+              TabBar(
+                controller: _tabController,
+                indicatorColor: primaryColor,
+                indicatorWeight: 3,
+                labelColor: primaryColor,
+                unselectedLabelColor:
+                    isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                labelStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+                tabs: const [
+                  Tab(text: 'Video'),
+                  Tab(text: 'Photo'),
+                  Tab(text: 'Music'),
+                ],
+              ),
+            ],
           ),
         ),
       ),
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
-            : _historyItems.isEmpty
-                ? _buildEmptyState(isDark, currentLanguage)
-                : _buildHistoryContent(isDark, currentLanguage),
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildTabContent(
+                    isDark: isDark,
+                    currentLanguage: currentLanguage,
+                    items: _filteredItems(MediaType.video),
+                    emptyIcon: Icons.videocam_off_rounded,
+                    emptyLabel: 'Belum ada video yang diunduh',
+                    emptyLabelEn: 'No videos downloaded yet',
+                    actionLabel: 'Putar',
+                    actionLabelEn: 'Play',
+                    mediaType: MediaType.video,
+                  ),
+                  _buildTabContent(
+                    isDark: isDark,
+                    currentLanguage: currentLanguage,
+                    items: _filteredItems(MediaType.photo),
+                    emptyIcon: Icons.image_not_supported_rounded,
+                    emptyLabel: 'Belum ada foto yang diunduh',
+                    emptyLabelEn: 'No photos downloaded yet',
+                    actionLabel: 'Lihat',
+                    actionLabelEn: 'View',
+                    mediaType: MediaType.photo,
+                  ),
+                  _buildTabContent(
+                    isDark: isDark,
+                    currentLanguage: currentLanguage,
+                    items: _filteredItems(MediaType.music),
+                    emptyIcon: Icons.music_off_rounded,
+                    emptyLabel: 'Belum ada musik yang diunduh',
+                    emptyLabelEn: 'No music downloaded yet',
+                    actionLabel: 'Putar',
+                    actionLabelEn: 'Play',
+                    mediaType: MediaType.music,
+                  ),
+                ],
+              ),
       ),
     );
   }
 
-  Widget _buildEmptyState(bool isDark, String currentLanguage) {
+  Widget _buildTabContent({
+    required bool isDark,
+    required String currentLanguage,
+    required List<HistoryItem> items,
+    required IconData emptyIcon,
+    required String emptyLabel,
+    required String emptyLabelEn,
+    required String actionLabel,
+    required String actionLabelEn,
+    required MediaType mediaType,
+  }) {
     final isId = currentLanguage == 'Bahasa Indonesia';
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppConstants.containerMargin),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary,
-                shape: BoxShape.circle,
+    if (items.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppConstants.containerMargin),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppColors.darkSurfaceSecondary
+                      : AppColors.lightSurfaceSecondary,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  emptyIcon,
+                  size: 56,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                ),
               ),
-              child: Icon(
-                Icons.folder_open_rounded,
-                size: 64,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              const SizedBox(height: 20),
+              Text(
+                isId ? emptyLabel : emptyLabelEn,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              isId ? 'Belum Ada Unduhan' : 'No Downloads Yet',
-              style: TextStyle(
-                color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isId ? 'Video dan audio yang kamu download akan muncul di sini.' : 'Videos and audio clips you download will appear here.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                fontSize: 14,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
-  Widget _buildHistoryContent(bool isDark, String currentLanguage) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppConstants.containerMargin),
       child: Column(
         children: [
-          // Section Header Row: Recent Downloads & Clear All
+          // Header Row: jumlah item & Clear All
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                AppStrings.tr('recent_downloads', currentLanguage),
+                '${items.length} ${isId ? "file" : "files"}',
                 style: TextStyle(
-                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               GestureDetector(
@@ -282,142 +398,21 @@ class HistoryScreenState extends ConsumerState<HistoryScreen> {
               ),
             ],
           ),
-
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Cards List
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _historyItems.length,
+            itemCount: items.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final item = _historyItems[index];
-              return Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? AppColors.borderDark : const Color(0xFFE9E7ED),
-                  ),
-                  boxShadow: isDark
-                      ? []
-                      : [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                ),
-                child: Row(
-                  children: [
-                    // Thumbnail with play overlay
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          item.thumbnail.isNotEmpty
-                              ? Image.network(
-                                  item.thumbnail,
-                                  width: 72,
-                                  height: 72,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    color: isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary,
-                                    child: const Icon(Icons.movie_outlined, color: Colors.grey, size: 28),
-                                  ),
-                                )
-                              : Container(
-                                  color: isDark ? AppColors.darkSurfaceSecondary : AppColors.lightSurfaceSecondary,
-                                  child: const Icon(Icons.movie_outlined, color: Colors.grey, size: 28),
-                                ),
-                          Container(color: Colors.black26),
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.4),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.play_arrow_rounded,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-
-                    // Info Column
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.title,
-                            style: TextStyle(
-                              color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: isDark ? AppColors.darkSurfaceSecondary : const Color(0xFFF2F2F7),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  item.platform,
-                                  style: TextStyle(
-                                    color: isDark ? AppColors.textSecondaryDark : const Color(0xFF666666),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '•  ${item.size}',
-                                style: TextStyle(
-                                  color: isDark ? AppColors.textSecondaryDark : const Color(0xFF666666),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Trailing 3 dots action menu
-                    IconButton(
-                      onPressed: () {
-                        _showItemMenu(context, item);
-                      },
-                      icon: Icon(
-                        Icons.more_vert_rounded,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                  ],
-                ),
+              final item = items[index];
+              return _buildItemCard(
+                isDark: isDark,
+                item: item,
+                actionLabel: isId ? actionLabel : actionLabelEn,
+                mediaType: mediaType,
               );
             },
           ),
@@ -426,7 +421,174 @@ class HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  void _showItemMenu(BuildContext context, HistoryItem item) {
+  Widget _buildItemCard({
+    required bool isDark,
+    required HistoryItem item,
+    required String actionLabel,
+    required MediaType mediaType,
+  }) {
+    final Icon typeIcon;
+    switch (mediaType) {
+      case MediaType.video:
+        typeIcon = const Icon(Icons.movie_outlined, color: Colors.grey, size: 28);
+        break;
+      case MediaType.photo:
+        typeIcon = const Icon(Icons.image_outlined, color: Colors.grey, size: 28);
+        break;
+      case MediaType.music:
+        typeIcon = const Icon(Icons.audio_file_outlined, color: Colors.grey, size: 28);
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : const Color(0xFFE9E7ED),
+        ),
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+      ),
+      child: Row(
+        children: [
+          // Thumbnail / ikon tipe media
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.darkSurfaceSecondary
+                  : AppColors.lightSurfaceSecondary,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                item.thumbnail.isNotEmpty
+                    ? Image.network(
+                        item.thumbnail,
+                        width: 72,
+                        height: 72,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: isDark
+                              ? AppColors.darkSurfaceSecondary
+                              : AppColors.lightSurfaceSecondary,
+                          child: typeIcon,
+                        ),
+                      )
+                    : Container(
+                        color: isDark
+                            ? AppColors.darkSurfaceSecondary
+                            : AppColors.lightSurfaceSecondary,
+                        child: typeIcon,
+                      ),
+                // Overlay play/view hanya kalau bukan photo (photo tidak perlu play overlay)
+                if (mediaType != MediaType.photo) ...[
+                  Container(color: Colors.black26),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      mediaType == MediaType.music
+                          ? Icons.music_note_rounded
+                          : Icons.play_arrow_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+
+          // Info Column
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppColors.darkSurfaceSecondary
+                            : const Color(0xFFF2F2F7),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        item.platform,
+                        style: TextStyle(
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : const Color(0xFF666666),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '•  ${item.size}',
+                      style: TextStyle(
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : const Color(0xFF666666),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Trailing action menu
+          IconButton(
+            onPressed: () {
+              _showItemMenu(context, item, actionLabel);
+            },
+            icon: Icon(
+              Icons.more_vert_rounded,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showItemMenu(BuildContext context, HistoryItem item, String actionLabel) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).brightness == Brightness.dark
@@ -449,8 +611,12 @@ class HistoryScreenState extends ConsumerState<HistoryScreen> {
             ),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.play_circle_outline),
-              title: const Text('Play Video'),
+              leading: Icon(
+                item.mediaType == MediaType.photo
+                    ? Icons.open_in_new_rounded
+                    : Icons.play_circle_outline,
+              ),
+              title: Text('$actionLabel file'),
               onTap: () {
                 Navigator.pop(context);
                 if (!item.taskId.startsWith('mock_')) {
@@ -460,7 +626,10 @@ class HistoryScreenState extends ConsumerState<HistoryScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline, color: AppColors.error),
-              title: const Text('Delete from History', style: TextStyle(color: AppColors.error)),
+              title: const Text(
+                'Hapus dari Riwayat',
+                style: TextStyle(color: AppColors.error),
+              ),
               onTap: () async {
                 Navigator.pop(context);
                 if (!item.taskId.startsWith('mock_')) {
