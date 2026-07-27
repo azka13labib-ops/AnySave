@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_constants.dart';
 
@@ -30,9 +31,9 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<void> _handleQuickLogin() async {
-    final name = _nameController.text.trim();
+    final rawName = _nameController.text.trim();
 
-    if (name.isEmpty) {
+    if (rawName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Silakan masukkan nama kamu terlebih dahulu'),
@@ -44,10 +45,32 @@ class _SignInScreenState extends State<SignInScreen> {
 
     setState(() => _isLoading = true);
 
+    final cleanSlug = rawName.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
+    final userEmail = '${cleanSlug.isNotEmpty ? cleanSlug : 'user'}@anysave.app';
+    final userPassword = 'anysave_${cleanSlug}_secure_pass';
+
+    // 1. Sync & Record User directly to Supabase Auth Backend
+    try {
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: userEmail,
+        password: userPassword,
+      );
+    } catch (_) {
+      try {
+        await Supabase.instance.client.auth.signUp(
+          email: userEmail,
+          password: userPassword,
+          data: {'display_name': rawName},
+        );
+      } catch (_) {}
+    }
+
+    // 2. Persist Local Session
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_signed_in', true);
-      await prefs.setString('user_name', name);
+      await prefs.setString('user_name', rawName);
+      await prefs.setString('user_email', userEmail);
     } catch (_) {}
 
     if (mounted) {
