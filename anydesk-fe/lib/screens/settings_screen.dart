@@ -162,28 +162,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               isDark: isDark,
               children: [
                 ListTile(
-                  onTap: () async {
+                  onTap: () {
                     if (_isSignedIn) {
-                      showDialog(
-                        context: context,
-                        builder: (dialogContext) => AlertDialog(
-                          title: const Text('Sign Out'),
-                          content: const Text('Are you sure you want to sign out? You will need to log in again to use AnySave.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(dialogContext),
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () async {
-                                Navigator.pop(dialogContext);
-                                ref.read(authStateProvider.notifier).signOut();
-                              },
-                              child: const Text('Sign Out', style: TextStyle(color: AppColors.error)),
-                            ),
-                          ],
-                        ),
-                      );
+                      _showEditProfileModal();
                     }
                   },
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -746,6 +727,145 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _confirmSignOut() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Keluar Akun'),
+        content: const Text('Apakah kamu yakin ingin keluar akun? Kamu perlu memasukkan nama lagi saat membuka aplikasi.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              ref.read(authStateProvider.notifier).signOut();
+            },
+            child: const Text('Keluar', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditProfileModal() {
+    final TextEditingController nameEditController = TextEditingController(text: _userName);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? AppColors.darkSurfaceContainer : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (modalContext) => Padding(
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 24,
+          bottom: MediaQuery.of(modalContext).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Edit Profil Pengguna',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(modalContext),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: CircleAvatar(
+                radius: 36,
+                backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                child: Text(
+                  _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'NAMA / USERNAME',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.0,
+                color: isDark ? AppColors.textSecondaryDark : const Color(0xFF8E8E93),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: nameEditController,
+              textCapitalization: TextCapitalization.words,
+              style: TextStyle(color: isDark ? Colors.white : AppColors.textPrimaryLight),
+              decoration: const InputDecoration(
+                hintText: 'Masukkan nama baru kamu',
+                prefixIcon: Icon(Icons.person_outline_rounded),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () async {
+                final newName = nameEditController.text.trim();
+                if (newName.isNotEmpty) {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setString('user_name', newName);
+                  if (mounted) {
+                    setState(() => _userName = newName);
+                    Navigator.pop(modalContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Nama profil berhasil diperbarui!'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Simpan Perubahan'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () {
+                Navigator.pop(modalContext);
+                _confirmSignOut();
+              },
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                side: const BorderSide(color: AppColors.error),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text('Keluar Akun', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+            ),
+          ],
         ),
       ),
     );
