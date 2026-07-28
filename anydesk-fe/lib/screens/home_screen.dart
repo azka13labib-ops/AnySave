@@ -28,15 +28,15 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TextEditingController _urlController = TextEditingController();
   bool _showStorageBanner = false;
-  DownloadTask? _latestTask;
-  String _latestThumb = '';
+  List<DownloadTask> _recentTasks = [];
+  Map<String, String> _recentThumbs = {};
   String _userName = 'User';
 
   @override
   void initState() {
     super.initState();
     _checkPermissionStatus();
-    _loadLatestTask();
+    _loadRecentTasks();
     _loadUserName();
   }
 
@@ -46,19 +46,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (mounted) setState(() => _userName = name);
   }
 
-  Future<void> _loadLatestTask() async {
+  Future<void> _loadRecentTasks() async {
     try {
       final tasks = await FlutterDownloader.loadTasks();
       if (tasks != null && tasks.isNotEmpty) {
         final completed = tasks.where((t) => t.status == DownloadTaskStatus.complete).toList();
         if (completed.isNotEmpty) {
           final prefs = await SharedPreferences.getInstance();
-          final last = completed.last;
-          final thumb = prefs.getString('thumb_${last.taskId}') ?? '';
+          // Ambil maksimal 3 download terbaru (limit 3)
+          final latestThree = completed.reversed.take(3).toList();
+          final Map<String, String> thumbs = {};
+          for (final t in latestThree) {
+            thumbs[t.taskId] = prefs.getString('thumb_${t.taskId}') ?? '';
+          }
           if (mounted) {
             setState(() {
-              _latestTask = last;
-              _latestThumb = thumb;
+              _recentTasks = latestThree;
+              _recentThumbs = thumbs;
             });
           }
         }
@@ -315,10 +319,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
 
-              if (_latestTask != null) ...[
+              if (_recentTasks.isNotEmpty) ...[
                 const SizedBox(height: AppConstants.sectionGap),
 
-                // 4. Real Recent Download Preview Card
+                // 4. Real Recent Download Preview Cards (Limit max 3)
                 Text(
                   AppStrings.tr('recent_downloads', currentLanguage),
                   style: TextStyle(
@@ -328,15 +332,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                RecentDownloadCard(
-                  title: _latestTask!.filename ?? 'Video_${_latestTask!.taskId.substring(0, 5)}.mp4',
-                  creator: 'Downloaded Media',
-                  views: 'MP4',
-                  thumbnailUrl: _latestThumb.isNotEmpty ? _latestThumb : 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400',
-                  onTap: () {
-                    FlutterDownloader.open(taskId: _latestTask!.taskId);
-                  },
-                ),
+                ..._recentTasks.map((task) {
+                  final thumb = _recentThumbs[task.taskId] ?? '';
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: RecentDownloadCard(
+                      title: task.filename ?? 'Video_${task.taskId.substring(0, 5)}.mp4',
+                      creator: 'Downloaded Media',
+                      views: 'MP4',
+                      thumbnailUrl: thumb.isNotEmpty
+                          ? thumb
+                          : 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400',
+                      onTap: () {
+                        FlutterDownloader.open(taskId: task.taskId);
+                      },
+                    ),
+                  );
+                }),
               ],
             ],
           ),
