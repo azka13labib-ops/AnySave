@@ -5,8 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'theme/app_theme.dart';
-import 'screens/main_navigation_wrapper.dart';
-import 'screens/sign_in_screen.dart';
+
+import 'screens/splash_screen.dart';
 import 'providers/app_settings_provider.dart';
 
 void main() async {
@@ -26,8 +26,8 @@ void main() async {
   // Initialize downloader
   try {
     await FlutterDownloader.initialize(
-      debug: true, 
-      ignoreSsl: true,
+      debug: false,
+      ignoreSsl: false,
     );
   } catch (_) {}
 
@@ -51,7 +51,6 @@ class AnySaveApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
-    final isSignedIn = ref.watch(authStateProvider);
 
     return MaterialApp(
       title: 'AnySave',
@@ -59,15 +58,7 @@ class AnySaveApp extends ConsumerWidget {
       themeMode: themeMode,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      home: isSignedIn
-          ? const MainNavigationWrapper()
-          : SignInScreen(
-              showGuestButton: false,
-              onBackPressed: () {},
-              onSignInSuccess: (name) {
-                ref.read(authStateProvider.notifier).signIn(name);
-              },
-            ),
+      home: const SplashScreen(),
     );
   }
 }

@@ -1,48 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_downloader/flutter_downloader.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../providers/downloader_provider.dart';
 
-class DownloadsTab extends StatefulWidget {
+class DownloadsTab extends ConsumerWidget {
   final int refreshKey;
   const DownloadsTab({super.key, this.refreshKey = 0});
 
   @override
-  State<DownloadsTab> createState() => _DownloadsTabState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final historyAsync = ref.watch(downloadHistoryProvider);
+
+    return historyAsync.when(
+      loading: () => const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: Text('Error: $e')),
+      ),
+      data: (tasks) => _DownloadsTabBody(tasks: tasks, onRefresh: () => ref.invalidate(downloadHistoryProvider)),
+    );
+  }
 }
 
-class _DownloadsTabState extends State<DownloadsTab> {
-  List<DownloadTask>? _tasks;
-  bool _isLoading = true;
+class _DownloadsTabBody extends StatelessWidget {
+  final List<DownloadTask> tasks;
+  final VoidCallback onRefresh;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadTasks();
-  }
-
-  @override
-  void didUpdateWidget(covariant DownloadsTab oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.refreshKey != widget.refreshKey) {
-      _loadTasks();
-    }
-  }
-
-  Future<void> _loadTasks() async {
-    setState(() => _isLoading = true);
-    try {
-      final tasks = await FlutterDownloader.loadTasks();
-      setState(() {
-        _tasks = tasks?.reversed.toList() ?? [];
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _tasks = [];
-        _isLoading = false;
-      });
-    }
-  }
+  const _DownloadsTabBody({required this.tasks, required this.onRefresh});
 
   String _getStatusText(DownloadTaskStatus status) {
     if (status == DownloadTaskStatus.complete) return 'COMPLETED';
@@ -84,32 +72,30 @@ class _DownloadsTabState extends State<DownloadsTab> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, size: 22),
-            onPressed: _loadTasks,
+            onPressed: onRefresh,
           )
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _tasks == null || _tasks!.isEmpty
-              ? _buildEmptyState()
-              : RefreshIndicator(
-                  onRefresh: _loadTasks,
-                  color: const Color(0xFFC8FF00),
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _tasks!.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final task = _tasks![index];
-                      return DownloadTabItemWidget(
-                        task: task,
-                        getStatusText: _getStatusText,
-                        getStatusColor: _getStatusColor,
-                        getStatusIcon: _getStatusIcon,
-                      );
-                    },
-                  ),
-                ),
+      body: tasks.isEmpty
+          ? _buildEmptyState()
+          : RefreshIndicator(
+              onRefresh: () async => onRefresh(),
+              color: const Color(0xFFC8FF00),
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: tasks.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final task = tasks[index];
+                  return DownloadTabItemWidget(
+                    task: task,
+                    getStatusText: _getStatusText,
+                    getStatusColor: _getStatusColor,
+                    getStatusIcon: _getStatusIcon,
+                  );
+                },
+              ),
+            ),
     );
   }
 

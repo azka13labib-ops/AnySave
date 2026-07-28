@@ -19,8 +19,14 @@ class ClearCacheDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppColors.darkSurface : Colors.white;
+    final titleColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final contentColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final cancelColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
     return AlertDialog(
-      backgroundColor: AppColors.darkSurface,
+      backgroundColor: bgColor,
       shape: RoundedRectangleBorder(
         borderRadius: AppConstants.borderRadiusLarge,
       ),
@@ -39,20 +45,20 @@ class ClearCacheDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Text(
+          Text(
             'Clear Cache?',
             style: TextStyle(
-              color: Colors.white,
+              color: titleColor,
               fontSize: 18,
               fontWeight: FontWeight.w800,
             ),
           ),
         ],
       ),
-      content: const Text(
+      content: Text(
         'This will clear temporary files and download history records. Saved media files on your device storage will not be affected.',
         style: TextStyle(
-          color: AppColors.textSecondaryDark,
+          color: contentColor,
           fontSize: 13.5,
           height: 1.4,
         ),
@@ -61,10 +67,10 @@ class ClearCacheDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text(
+          child: Text(
             'Cancel',
             style: TextStyle(
-              color: AppColors.textSecondaryDark,
+              color: cancelColor,
               fontWeight: FontWeight.w600,
             ),
           ),

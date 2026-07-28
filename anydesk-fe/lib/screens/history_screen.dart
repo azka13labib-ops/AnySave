@@ -150,6 +150,116 @@ class HistoryScreenState extends ConsumerState<HistoryScreen>
     }
   }
 
+  Future<void> clearCategoryHistory(MediaType type) async {
+    try {
+      final itemsToClear = _filteredItems(type);
+      if (itemsToClear.isEmpty) return;
+
+      final prefs = await SharedPreferences.getInstance();
+
+      for (var item in itemsToClear) {
+        await FlutterDownloader.remove(
+          taskId: item.taskId,
+          shouldDeleteContent: false, // Tidak menghapus file asli
+        );
+        await prefs.remove('thumb_${item.taskId}');
+      }
+
+      if (mounted) {
+        setState(() {
+          _historyItems.removeWhere((item) => item.mediaType == type);
+        });
+      }
+    } catch (e) {
+      debugPrint('Clear category history error: $e');
+    }
+  }
+
+  void _confirmClearCategory(BuildContext context, String currentLanguage, MediaType type) {
+    final isId = currentLanguage == 'Bahasa Indonesia';
+    String typeName = '';
+    switch (type) {
+      case MediaType.video: typeName = 'Video'; break;
+      case MediaType.photo: typeName = 'Foto'; break;
+      case MediaType.music: typeName = 'Musik'; break;
+    }
+    final typeNameEn = type == MediaType.video ? 'Video' : type == MediaType.photo ? 'Photo' : 'Music';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final bgColor = isDark ? AppColors.darkSurface : Colors.white;
+        final titleColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+        final contentColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+        final cancelColor = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
+        return AlertDialog(
+          backgroundColor: bgColor,
+          shape: RoundedRectangleBorder(borderRadius: AppConstants.borderRadiusLarge),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.15), shape: BoxShape.circle),
+                child: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                isId ? 'Hapus $typeName?' : 'Clear $typeNameEn?',
+                style: TextStyle(color: titleColor, fontSize: 18, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+          content: Text(
+            isId
+                ? 'Riwayat unduhan $typeName akan dihapus. File asli di HP Anda aman dan tidak akan terhapus.'
+                : 'Your $typeNameEn download history will be cleared. The actual files on your device will remain safe.',
+            style: TextStyle(color: contentColor, fontSize: 13.5, height: 1.4),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          actions: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      foregroundColor: cancelColor,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: AppConstants.borderRadiusMedium),
+                    ),
+                    child: Text(isId ? 'Batal' : 'Cancel', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      clearCategoryHistory(type);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(isId ? 'Riwayat $typeName berhasil dihapus' : '$typeNameEn history cleared')),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: AppConstants.borderRadiusMedium),
+                    ),
+                    child: Text(isId ? 'Ya, Hapus' : 'Yes, Delete', style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> clearAllHistory() async {
     try {
       final tasks = await FlutterDownloader.loadTasks();
@@ -386,7 +496,7 @@ class HistoryScreenState extends ConsumerState<HistoryScreen>
                 ),
               ),
               GestureDetector(
-                onTap: widget.onClearHistoryTap,
+                onTap: () => _confirmClearCategory(context, currentLanguage, mediaType),
                 child: Text(
                   AppStrings.tr('clear_all', currentLanguage),
                   style: TextStyle(

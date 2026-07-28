@@ -7,6 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_constants.dart';
 import '../providers/app_settings_provider.dart';
+import 'sign_in_screen.dart';
+import 'main_navigation_wrapper.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   final VoidCallback onClearCacheTap;
@@ -767,7 +769,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-              ref.read(authStateProvider.notifier).signOut();
+              await ref.read(authStateProvider.notifier).signOut();
+              if (!mounted) return;
+              // Gunakan _SignInEntryScreen agar context navigasi login fresh (tidak stale)
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const _SignInEntryScreen()),
+                (route) => false,
+              );
             },
             child: const Text('Keluar', style: TextStyle(color: AppColors.error)),
           ),
@@ -920,4 +928,26 @@ Preferences, settings, and saved thumbnails are stored locally on your mobile de
 3. Third Party Services
 No personal user analytics or tracking profiles are uploaded to external tracking servers.
 ''';
+}
+
+/// Widget standalone untuk Sign In setelah logout dari Settings.
+/// Menggunakan context sendiri agar navigasi setelah login tidak crash
+/// karena SettingsScreen sudah dihapus dari widget tree.
+class _SignInEntryScreen extends ConsumerWidget {
+  const _SignInEntryScreen();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SignInScreen(
+      showGuestButton: false,
+      onBackPressed: () {},
+      onSignInSuccess: (name) {
+        ref.read(authStateProvider.notifier).signIn(name);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainNavigationWrapper()),
+          (route) => false,
+        );
+      },
+    );
+  }
 }

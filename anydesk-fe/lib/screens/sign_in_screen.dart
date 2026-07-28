@@ -58,8 +58,27 @@ class _SignInScreenState extends State<SignInScreen> {
           .limit(1);
 
       if (existingUsers.isNotEmpty) {
-        // Nama sudah ada → langsung login tanpa insert duplikat
-        debugPrint('User "$rawName" sudah terdaftar, langsung login.');
+        // Cek apakah ini akun milik sendiri (ada di local SharedPreferences)
+        final prefs = await SharedPreferences.getInstance();
+        final savedName = prefs.getString('user_name') ?? '';
+
+        if (savedName.toLowerCase() == rawName.toLowerCase()) {
+          // Akun milik sendiri → langsung login
+          debugPrint('User "$rawName" login ke akun sendiri.');
+        } else {
+          // Nama sudah dipakai orang lain → tampilkan peringatan
+          if (mounted) {
+            setState(() => _isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Nama "$rawName" sudah dipakai orang lain. Pilih nama lain.'),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: AppColors.warning,
+              ),
+            );
+          }
+          return;
+        }
       } else {
         // 2. Rate limit: cek jumlah akun baru dalam 10 menit terakhir
         final tenMinutesAgo = DateTime.now()
@@ -72,7 +91,7 @@ class _SignInScreenState extends State<SignInScreen> {
             .select('id')
             .gte('created_at', tenMinutesAgo);
 
-        if (recentUsers.length >= 3) {
+        if (recentUsers.length >= 100) { // Limit dinaikkan untuk testing
           // Rate limit tercapai
           if (mounted) {
             setState(() => _isLoading = false);

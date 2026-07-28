@@ -16,6 +16,8 @@ class MediaOption {
 
     final lower = rawQuality.toLowerCase();
 
+    if (lower.contains('4k') || lower.contains('2160')) return '4K Ultra HD';
+    if (lower.contains('2k') || lower.contains('1440')) return '2K Quad HD';
     if (lower.contains('1080')) return '1080p Full HD';
     if (lower.contains('720')) return '720p HD';
     if (lower.contains('540')) return '540p SD';

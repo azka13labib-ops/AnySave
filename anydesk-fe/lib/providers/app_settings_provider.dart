@@ -7,6 +7,13 @@ final authStateProvider = StateNotifierProvider<AuthStateNotifier, bool>((ref) {
   return AuthStateNotifier();
 });
 
+// FutureProvider untuk membaca sesi saat startup — tidak ada race condition.
+// SplashScreen menunggu provider ini selesai sebelum memutuskan navigasi.
+final authSessionProvider = FutureProvider<bool>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool('is_signed_in') ?? false;
+});
+
 class AuthStateNotifier extends StateNotifier<bool> {
   AuthStateNotifier() : super(false) {
     checkStatus();
@@ -27,6 +34,7 @@ class AuthStateNotifier extends StateNotifier<bool> {
   Future<void> signOut() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_signed_in', false);
+    await prefs.remove('user_name'); // Bersihkan nama agar buat akun baru tidak konflik
     state = false;
   }
 }

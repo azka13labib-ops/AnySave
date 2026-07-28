@@ -51,6 +51,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _activeStatus = status;
       });
       _modalSetState?.call(() {});
+
+      // Jika download selesai (sukses/gagal/batal), invalidate provider agar
+      // HomeScreen (recent) dan HistoryTab otomatis refresh — efek "realtime".
+      if (status == DownloadTaskStatus.complete ||
+          status == DownloadTaskStatus.failed ||
+          status == DownloadTaskStatus.canceled) {
+        ref.invalidate(downloadHistoryProvider);
+        ref.invalidate(recentDownloadsProvider);
+
+        // Jika berhasil diunduh: hapus URL dari kolom input agar siap untuk link baru
+        if (status == DownloadTaskStatus.complete) {
+          _urlController.clear();
+          ref.read(downloaderProvider.notifier).reset();
+        }
+      }
     }
   }
 
@@ -1523,14 +1538,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   //  Recent Downloads Section
   // ──────────────────────────────────────────────
   Widget _buildRecentDownloadsSection() {
-    return FutureBuilder<List<DownloadTask>?>(
-      future: FlutterDownloader.loadTasks(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox.shrink();
-        }
-        final tasks = snapshot.data?.reversed.toList() ?? [];
+    final recentAsync = ref.watch(recentDownloadsProvider);
 
+    return recentAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (data) {
+        final tasks = data.tasks;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

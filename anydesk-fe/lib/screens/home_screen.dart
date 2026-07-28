@@ -182,8 +182,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppConstants.containerMargin),
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.translucent,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppConstants.containerMargin),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -352,6 +355,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
             ],
           ),
+        ),
         ),
       ),
     );
