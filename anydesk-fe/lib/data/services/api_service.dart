@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import '../models/media_item.dart';
 
 class ApiService {
@@ -21,13 +22,17 @@ class ApiService {
     } else if (lower.contains('youtube.com') || lower.contains('youtu.be')) {
       return 'youtube';
     }
-    // Default to tiktok for all shortlinks and TikTok variants
     return 'tiktok';
   }
 
   Future<MediaItem> fetchMediaDetails(String rawUrl) async {
     final cleanUrl = _cleanUrl(rawUrl);
     final platform = _detectPlatform(cleanUrl);
+
+    // YouTube: gunakan youtube_explode_dart secara native (bypass RapidAPI)
+    if (platform == 'youtube') {
+      return await _fetchYoutubeDetails(cleanUrl);
+    }
 
     final baseUrl = dotenv.env['SUPABASE_FUNCTIONS_URL'] ?? 'https://kmzwrypgdlxzzsubmepc.supabase.co/functions/v1';
     final endpoint = '$baseUrl/video-downloader';
@@ -68,6 +73,60 @@ class ApiService {
       throw Exception('Gagal menghubungi server: ${e.message}');
     } catch (e) {
       throw Exception(e.toString());
+    }
+  }
+
+  Future<MediaItem> _fetchYoutubeDetails(String url) async {
+    final yt = YoutubeExplode();
+    try {
+      final video = await yt.videos.get(url);
+      final manifest = await yt.videos.streamsClient.getManifest(video.id);
+
+      final List<MediaOption> links = [];
+
+      // Ambil semua stream muxed (video+audio sudah tergabung) — tidak perlu merge
+      // youtube_explode_dart biasanya menyediakan hingga 720p untuk muxed
+      final addedResolutions = <int>{};
+      
+      // Urutkan dari kualitas tertinggi
+      final sortedMuxed = manifest.muxed.toList()
+        ..sort((a, b) => b.videoResolution.height.compareTo(a.videoResolution.height));
+
+      for (final muxed in sortedMuxed) {
+        final height = muxed.videoResolution.height;
+        if (addedResolutions.contains(height)) continue;
+        addedResolutions.add(height);
+
+        String label;
+        if (height >= 1080) label = '1080p Full HD';
+        else if (height >= 720) label = '720p HD';
+        else if (height >= 480) label = '480p SD';
+        else if (height >= 360) label = '360p SD';
+        else label = '${height}p';
+
+        links.add(MediaOption(
+          url: muxed.url.toString(),
+          quality: '${height}p',
+          extension: muxed.container.name,
+          renderTitle: label,
+          isYouTube: true,
+          // audioUrl = null → tidak butuh FFmpeg, sudah muxed
+        ));
+      }
+
+      final thumbUrl = video.thumbnails.highResUrl;
+
+      return MediaItem(
+        title: video.title,
+        thumbnail: thumbUrl,
+        uploader: video.author,
+        uploaderAvatar: null,
+        links: links,
+      );
+    } catch (e) {
+      throw Exception('Gagal memproses YouTube: $e');
+    } finally {
+      yt.close();
     }
   }
 }

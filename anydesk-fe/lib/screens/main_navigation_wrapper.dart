@@ -116,12 +116,12 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
             FocusScope.of(context).unfocus();
           },
           onComplete: () {
-            Navigator.pop(context); // Close progress
-            FocusScope.of(context).unfocus(); // Unfocus keyboard!
-            _historyKey.currentState?.loadHistory(); // Real-time sync History tab
-            setState(() => _currentIndex = 0); // Return to HOME screen
+            Navigator.pop(context);
+            FocusScope.of(context).unfocus();
+            _historyKey.currentState?.loadHistory();
+            setState(() => _currentIndex = 0);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Download complete! Saved to gallery.')),
+              const SnackBar(content: Text('Download selesai! Video disimpan ke Galeri.')),
             );
           },
         ),

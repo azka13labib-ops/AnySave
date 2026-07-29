@@ -147,21 +147,31 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
-                                    Container(
-                                      width: 24,
-                                      height: 24,
-                                      decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: AppColors.primary,
+                                    if (item?.uploaderAvatar != null && item!.uploaderAvatar!.isNotEmpty)
+                                      CircleAvatar(
+                                        radius: 12,
+                                        backgroundImage: NetworkImage(item.uploaderAvatar!),
+                                      )
+                                    else
+                                      Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: AppColors.primary,
+                                        ),
+                                        child: const Icon(Icons.person, size: 16, color: Colors.white),
                                       ),
-                                      child: const Icon(Icons.person, size: 16, color: Colors.white),
-                                    ),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      'AnySave Downloader',
-                                      style: TextStyle(
-                                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                                        fontSize: 14,
+                                    Expanded(
+                                      child: Text(
+                                        item?.uploader ?? 'AnySave Downloader',
+                                        style: TextStyle(
+                                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                          fontSize: 14,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ],

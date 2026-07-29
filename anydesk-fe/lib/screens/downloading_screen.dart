@@ -30,7 +30,7 @@ class _DownloadingScreenState extends State<DownloadingScreen>
   late AnimationController _spinController;
   Timer? _pollingTimer;
   int _progress = 0;
-  DownloadTaskStatus _status = DownloadTaskStatus.running;
+  String _phaseLabel = 'Mengunduh file...';
 
   @override
   void initState() {
@@ -55,7 +55,9 @@ class _DownloadingScreenState extends State<DownloadingScreen>
           final task = tasks.first;
           setState(() {
             _progress = task.progress;
-            _status = task.status;
+            _phaseLabel = task.status == DownloadTaskStatus.complete
+                ? 'Selesai disimpan ke Galeri ✅'
+                : 'Mengunduh file...';
           });
 
           if (task.status == DownloadTaskStatus.complete) {
@@ -100,7 +102,7 @@ class _DownloadingScreenState extends State<DownloadingScreen>
     final thumbnail = item?.thumbnail.isNotEmpty == true
         ? item!.thumbnail
         : 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600';
-    final qualityLabel = option?.renderTitle.replaceAll('Download ', '') ?? '720p HD';
+    final qualityLabel = option?.renderTitle ?? '720p HD';
 
     return Scaffold(
       appBar: AppBar(
@@ -133,7 +135,7 @@ class _DownloadingScreenState extends State<DownloadingScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 1. Real Video Thumbnail Area with Animated Sync Icon
+                  // 1. Thumbnail + animasi berputar
                   SizedBox(
                     height: 160,
                     width: double.infinity,
@@ -173,7 +175,7 @@ class _DownloadingScreenState extends State<DownloadingScreen>
 
                   const SizedBox(height: 20),
 
-                  // 2. Progress Info Area
+                  // 2. Judul + progress
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -216,7 +218,7 @@ class _DownloadingScreenState extends State<DownloadingScreen>
 
                   const SizedBox(height: 12),
 
-                  // Linear Progress Bar
+                  // Progress bar
                   ClipRRect(
                     borderRadius: BorderRadius.circular(999),
                     child: LinearProgressIndicator(
@@ -233,9 +235,7 @@ class _DownloadingScreenState extends State<DownloadingScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        _status == DownloadTaskStatus.complete
-                            ? 'Selesai disimpan ke Galeri'
-                            : 'Mengunduh file...',
+                        _phaseLabel,
                         style: TextStyle(
                           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                           fontSize: 11,
@@ -255,7 +255,7 @@ class _DownloadingScreenState extends State<DownloadingScreen>
 
                   const SizedBox(height: 24),
 
-                  // 3. Cancel Button
+                  // Tombol cancel
                   OutlinedButton.icon(
                     onPressed: _handleCancel,
                     style: OutlinedButton.styleFrom(

@@ -1,15 +1,27 @@
 class MediaOption {
   final String url;
-  final String quality; // maps to 'label' in v3
-  final String extension; // maps to metadata.mime_type
-  final String renderTitle; // custom description based on type
+  final String quality;
+  final String extension;
+  final String renderTitle;
+
+  /// Khusus YouTube HD: URL stream audio terpisah yang harus di-merge dengan FFmpeg.
+  /// Null berarti video sudah muxed (ada audionya) dan tidak perlu merge.
+  final String? audioUrl;
+
+  /// True jika opsi ini berasal dari YouTube (native youtube_explode_dart)
+  final bool isYouTube;
 
   MediaOption({
     required this.url,
     required this.quality,
     required this.extension,
     required this.renderTitle,
+    this.audioUrl,
+    this.isYouTube = false,
   });
+
+  /// Returns true jika opsi ini butuh FFmpeg merge (YouTube HD)
+  bool get needsMerge => isYouTube && audioUrl != null && audioUrl!.isNotEmpty;
 
   static String formatQualityLabel(String rawQuality, String type) {
     if (rawQuality.isEmpty) return type == 'video' ? 'HD Video' : 'Audio MP3';
@@ -38,7 +50,12 @@ class MediaOption {
       return '360p SD';
     }
 
+    // FIX: Gunakan lowercase biasa, bukan flag (?i) yang tidak didukung di Dart
     String clean = rawQuality.replaceAll(RegExp(r'[_-]'), ' ').trim();
+    final cleanLower = clean.toLowerCase();
+    if (cleanLower.contains('medium360')) return '360p SD';
+    if (cleanLower.contains('high720')) return '720p HD';
+    if (cleanLower.contains('high1080')) return '1080p Full HD';
     return 'Download $clean';
   }
 
@@ -64,16 +81,26 @@ class MediaOption {
 class MediaItem {
   final String title;
   final String thumbnail;
+  final String uploader;
+  final String? uploaderAvatar;
   final List<MediaOption> links;
 
   MediaItem({
     required this.title,
     required this.thumbnail,
+    required this.uploader,
+    this.uploaderAvatar,
     required this.links,
   });
 
   factory MediaItem.fromJson(Map<String, dynamic> json) {
     final title = json['title'] ?? json['metadata']?['title'] ?? 'Unknown Title';
+    
+    // Parse author/uploader (dari backend/RapidAPI)
+    final authorInfo = json['author'] ?? json['metadata']?['author'] ?? {};
+    final String uploader = authorInfo['name'] ?? authorInfo['username'] ?? json['uploader'] ?? 'AnySave Downloader';
+    final String? uploaderAvatar = authorInfo['avatar'] ?? authorInfo['profile_pic'] ?? json['uploaderAvatar'];
+    
     final dynamic contentsData = json['contents'];
 
     List<MediaOption> parsedLinks = [];
@@ -134,7 +161,7 @@ class MediaItem {
       }
     }
 
-    // Sort parsedLinks by highest quality first (1080p > 720p > 540p > 480p > 360p)
+    // Sort parsedLinks by highest quality first
     int getQualityScore(MediaOption option) {
       final q = '${option.quality} ${option.renderTitle}'.toLowerCase();
       if (q.contains('1080') || q.contains('full hd') || q.contains('highest')) return 100;
@@ -148,7 +175,7 @@ class MediaItem {
 
     parsedLinks.sort((a, b) => getQualityScore(b).compareTo(getQualityScore(a)));
 
-    // Deduplicate options by title so each quality (1080p, 720p, 540p, etc.) only appears ONCE
+    // Deduplicate options by renderTitle
     final Map<String, MediaOption> uniqueMap = {};
     for (var option in parsedLinks) {
       if (!uniqueMap.containsKey(option.renderTitle)) {
@@ -160,9 +187,9 @@ class MediaItem {
     return MediaItem(
       title: title,
       thumbnail: thumbnail,
+      uploader: uploader,
+      uploaderAvatar: uploaderAvatar,
       links: uniqueLinks,
     );
   }
 }
-
-
