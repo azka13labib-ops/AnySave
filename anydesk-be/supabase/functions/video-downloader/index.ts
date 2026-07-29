@@ -34,7 +34,7 @@ Deno.serve(async (req: Request) => {
         apiUrl = "https://social-media-video-downloader.p.rapidapi.com/instagram/v3/media/post/details";
         break;
       case "youtube":
-        apiUrl = "https://social-media-video-downloader.p.rapidapi.com/youtube/v3/info";
+        apiUrl = "https://social-media-video-downloader.p.rapidapi.com/youtube/v3/video/details";
         break;
       default:
         return new Response(
@@ -43,13 +43,18 @@ Deno.serve(async (req: Request) => {
         )
     }
 
-    // Membentuk URL final, khusus Instagram kita gunakan 'shortcode', selainnya 'url'
+    // Membentuk URL final, khusus Instagram kita gunakan 'shortcode', YouTube gunakan 'videoId', selainnya 'url'
     let finalUrl = "";
     if (platform.toLowerCase() === "instagram") {
-      // Parse shortcode dari link Instagram (misal: https://www.instagram.com/p/DRUFUhkiadH/ -> DRUFUhkiadH)
+      // Parse shortcode dari link Instagram
       const match = targetUrl.match(/\/(?:p|reel|tv)\/([a-zA-Z0-9_-]+)/);
       const shortcode = match ? match[1] : targetUrl;
       finalUrl = `${apiUrl}?shortcode=${shortcode}`;
+    } else if (platform.toLowerCase() === "youtube") {
+      // Parse videoId dari link YouTube
+      const match = targetUrl.match(/(?:v=|\/)([0-9A-Za-z_-]{11}).*/);
+      const videoId = match ? match[1] : targetUrl;
+      finalUrl = `${apiUrl}?videoId=${videoId}`;
     } else {
       finalUrl = `${apiUrl}?url=${encodeURIComponent(targetUrl)}`;
     }
