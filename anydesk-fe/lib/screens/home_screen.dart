@@ -308,12 +308,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     isDark: isDark,
                   ),
                   _buildSocialShortcut(
-                    name: 'X',
-                    iconPath: 'assets/icons/x.png',
-                    url: 'https://x.com/',
-                    isDark: isDark,
-                  ),
-                  _buildSocialShortcut(
                     name: 'Pinterest',
                     iconPath: 'assets/icons/pinterest.png',
                     url: 'https://www.pinterest.com/',
